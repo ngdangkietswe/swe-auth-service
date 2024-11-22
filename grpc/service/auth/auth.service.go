@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
@@ -14,6 +15,8 @@ type authService struct {
 }
 
 func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.UpsertResp, error) {
+	// TODO: implement validate request
+
 	hashPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		log.Fatalf("failed to hash password: %v", err)
@@ -28,6 +31,7 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	}
 
 	return &common.UpsertResp{
+		Success: true,
 		Resp: &common.UpsertResp_Data_{
 			Data: &common.UpsertResp_Data{Id: entUser.ID.String()},
 		},
@@ -35,8 +39,47 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 }
 
 func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.LoginResp, error) {
-	//TODO implement me
-	panic("implement me")
+	var (
+		entUser *ent.User
+		err     error
+		token   string
+	)
+
+	// Check if user exists with username
+	entUser, err = a.authRepository.FindByUsername(ctx, req.Username)
+	if err != nil {
+		return &auth.LoginResp{
+			Error: &common.Error{
+				Code:    401,
+				Message: "Username or password is incorrect",
+			},
+		}, nil
+	}
+
+	// Compare password
+	if err := utils.CheckPasswordHash(entUser.Password, req.Password); err != nil {
+		return &auth.LoginResp{
+			Error: &common.Error{
+				Code:    401,
+				Message: "Username or password is incorrect",
+			},
+		}, nil
+	}
+
+	// Generate token
+	token, err = utils.GenerateToken(entUser)
+	if err != nil {
+		return &auth.LoginResp{
+			Error: &common.Error{
+				Code:    401,
+				Message: "Unknown error",
+			},
+		}, nil
+	}
+
+	return &auth.LoginResp{
+		Token: token,
+	}, nil
 }
 
 func NewAuthGrpcService(authRepository repository.IAuthRepository) IAuthService {

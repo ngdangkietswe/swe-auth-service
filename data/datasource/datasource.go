@@ -6,13 +6,15 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/configs"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"log"
+
+	_ "github.com/lib/pq"
 )
 
 func NewEntClient() *ent.Client {
 	client, err := ent.Open(
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s dbname=%s password=%s",
+			"host=%s port=%d user=%s dbname=%s password=%s sslmode=disable",
 			configs.GlobalConfig.DbHost,
 			configs.GlobalConfig.DbPort,
 			configs.GlobalConfig.DbUser,

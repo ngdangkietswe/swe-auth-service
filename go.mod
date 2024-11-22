@@ -7,7 +7,9 @@ toolchain go1.23.3
 require entgo.io/ent v0.14.1
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
 	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241122085500-7d9689cca1b1
 	github.com/spf13/viper v1.19.0
 	golang.org/x/crypto v0.29.0

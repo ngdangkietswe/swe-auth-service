@@ -22,7 +22,7 @@ func (User) Fields() []ent.Field {
 		field.String("password").NotEmpty(),
 		field.String("email").NotEmpty(),
 		field.Time("created_at").Immutable().Default(time.Now()),
-		field.Time("updated_ata").Default(time.Now()).UpdateDefault(time.Now()),
+		field.Time("updated_at").Default(time.Now()),
 	}
 }
 
