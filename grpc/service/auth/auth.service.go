@@ -4,29 +4,32 @@ import (
 	"context"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
-	"log"
 )
 
 type authService struct {
 	authRepository repository.IAuthRepository
+	authValidator  validator.IAuthValidator
 }
 
 func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.UpsertResp, error) {
-	// TODO: implement validate request
+	// Validate request
+	err := a.authValidator.RegisterUser(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
 	hashPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		log.Fatalf("failed to hash password: %v", err)
 		return nil, err
 	}
 
 	req.Password = hashPassword
 	entUser, err := a.authRepository.UpsertUser(ctx, req)
 	if err != nil {
-		log.Fatalf("failed to upsert user: %v", err)
 		return nil, err
 	}
 
@@ -82,8 +85,9 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 	}, nil
 }
 
-func NewAuthGrpcService(authRepository repository.IAuthRepository) IAuthService {
+func NewAuthGrpcService(authRepository repository.IAuthRepository, authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
 		authRepository: authRepository,
+		authValidator:  authValidator,
 	}
 }

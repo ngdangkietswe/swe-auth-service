@@ -10,5 +10,6 @@ type (
 	IAuthRepository interface {
 		UpsertUser(ctx context.Context, user *auth.User) (*ent.User, error)
 		FindByUsername(ctx context.Context, username string) (*ent.User, error)
+		FindByUsernameOrEmail(ctx context.Context, username string, email string) (*ent.User, error)
 	}
 )
