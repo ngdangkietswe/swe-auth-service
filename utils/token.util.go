@@ -13,6 +13,7 @@ type JwtUserClaims struct {
 	Email    string `json:"email"`
 }
 
+// GenerateToken is a function that generates a JWT token.
 func GenerateToken(entUser *ent.User) (string, error) {
 	exp := time.Now().Add(time.Second * configs.GlobalConfig.JwtExp).Unix()
 

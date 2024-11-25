@@ -5,9 +5,13 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
+	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
+	"github.com/ngdangkietswe/swe-auth-service/kafka/model"
+	"github.com/ngdangkietswe/swe-auth-service/kafka/producer"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
+	"time"
 )
 
 type authService struct {
@@ -32,6 +36,17 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	if err != nil {
 		return nil, err
 	}
+
+	// Produce message to kafka. This message will be consumed by swe notification service
+	kProducer := producer.NewKProducer(constant.TopicRegisterUser)
+	go func() {
+		registerUser := model.RegisterUser{
+			Username:  req.Username,
+			Email:     req.Email,
+			CreatedAt: time.Now().Format(time.RFC3339),
+		}
+		kProducer.Produce(entUser.ID.String(), registerUser)
+	}()
 
 	return &common.UpsertResp{
 		Success: true,
@@ -85,7 +100,9 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 	}, nil
 }
 
-func NewAuthGrpcService(authRepository repository.IAuthRepository, authValidator validator.IAuthValidator) IAuthService {
+func NewAuthGrpcService(
+	authRepository repository.IAuthRepository,
+	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
 		authRepository: authRepository,
 		authValidator:  authValidator,
