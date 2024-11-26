@@ -24,6 +24,10 @@ type User struct {
 	Password string `json:"password,omitempty"`
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
+	// Enable2fa holds the value of the "enable_2fa" field.
+	Enable2fa bool `json:"enable_2fa,omitempty"`
+	// Secret2fa holds the value of the "secret_2fa" field.
+	Secret2fa *string `json:"secret_2fa,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -36,7 +40,9 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldUsername, user.FieldPassword, user.FieldEmail:
+		case user.FieldEnable2fa:
+			values[i] = new(sql.NullBool)
+		case user.FieldUsername, user.FieldPassword, user.FieldEmail, user.FieldSecret2fa:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -80,6 +86,19 @@ func (u *User) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field email", values[i])
 			} else if value.Valid {
 				u.Email = value.String
+			}
+		case user.FieldEnable2fa:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field enable_2fa", values[i])
+			} else if value.Valid {
+				u.Enable2fa = value.Bool
+			}
+		case user.FieldSecret2fa:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field secret_2fa", values[i])
+			} else if value.Valid {
+				u.Secret2fa = new(string)
+				*u.Secret2fa = value.String
 			}
 		case user.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -137,6 +156,14 @@ func (u *User) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("email=")
 	builder.WriteString(u.Email)
+	builder.WriteString(", ")
+	builder.WriteString("enable_2fa=")
+	builder.WriteString(fmt.Sprintf("%v", u.Enable2fa))
+	builder.WriteString(", ")
+	if v := u.Secret2fa; v != nil {
+		builder.WriteString("secret_2fa=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))

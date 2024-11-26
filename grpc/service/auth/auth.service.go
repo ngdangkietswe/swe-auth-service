@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"github.com/ngdangkietswe/swe-auth-service/configs"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	grpcutil "github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/model"
@@ -19,6 +22,21 @@ type authService struct {
 	authValidator  validator.IAuthValidator
 }
 
+// EnableOrDisable2FA is a function that enables or disables 2FA for a user.
+func (a authService) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrDisable2FAReq) (*auth.EnableOrDisable2FAResp, error) {
+	principal := grpcutil.GetGrpcPrincipal(ctx)
+	userId := principal.UserId
+	entUser, err := a.authRepository.EnableOrDisable2FA(ctx, userId, req.Enable)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	return &auth.EnableOrDisable2FAResp{
+		QrCodeImageUrl: utils.GenerateTOTPWithSecret(*entUser.Secret2fa),
+	}, nil
+}
+
+// RegisterUser is a function that registers a new user.
 func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.UpsertResp, error) {
 	// Validate request
 	err := a.authValidator.RegisterUser(ctx, req)
@@ -56,6 +74,7 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	}, nil
 }
 
+// Login is a function that logs in a user.
 func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.LoginResp, error) {
 	var (
 		entUser *ent.User
@@ -84,8 +103,39 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 		}, nil
 	}
 
+	// Validate 2fa if it is enabled for the user
+	if entUser.Enable2fa {
+		if req.Otp == nil || *req.Otp == "" {
+			return &auth.LoginResp{
+				Error: &common.Error{
+					Code:    401,
+					Message: "Two-factor authentication is required",
+				},
+			}, nil
+		}
+		if !utils.VerifyOTP(*entUser.Secret2fa, *req.Otp) {
+			return &auth.LoginResp{
+				Error: &common.Error{
+					Code:    401,
+					Message: "Two-factor authentication is incorrect",
+				},
+			}, nil
+		}
+	}
+
 	// Generate token
-	token, err = utils.GenerateToken(entUser)
+	token, err = utils.GenerateToken(entUser, false)
+	if err != nil {
+		return &auth.LoginResp{
+			Error: &common.Error{
+				Code:    401,
+				Message: "Unknown error",
+			},
+		}, nil
+	}
+
+	// Generate refresh token
+	refreshToken, err := utils.GenerateToken(entUser, true)
 	if err != nil {
 		return &auth.LoginResp{
 			Error: &common.Error{
@@ -96,7 +146,12 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 	}
 
 	return &auth.LoginResp{
-		Token: token,
+		AccessToken:           token,
+		AccessTokenExpiresIn:  configs.GlobalConfig.JwtExp.String(),
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiresIn: configs.GlobalConfig.RefreshTokenExp.String(),
+		TokenType:             "Bearer",
+		TwoFactorAuth:         entUser.Enable2fa,
 	}, nil
 }
 

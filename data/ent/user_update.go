@@ -70,6 +70,40 @@ func (uu *UserUpdate) SetNillableEmail(s *string) *UserUpdate {
 	return uu
 }
 
+// SetEnable2fa sets the "enable_2fa" field.
+func (uu *UserUpdate) SetEnable2fa(b bool) *UserUpdate {
+	uu.mutation.SetEnable2fa(b)
+	return uu
+}
+
+// SetNillableEnable2fa sets the "enable_2fa" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableEnable2fa(b *bool) *UserUpdate {
+	if b != nil {
+		uu.SetEnable2fa(*b)
+	}
+	return uu
+}
+
+// SetSecret2fa sets the "secret_2fa" field.
+func (uu *UserUpdate) SetSecret2fa(s string) *UserUpdate {
+	uu.mutation.SetSecret2fa(s)
+	return uu
+}
+
+// SetNillableSecret2fa sets the "secret_2fa" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableSecret2fa(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetSecret2fa(*s)
+	}
+	return uu
+}
+
+// ClearSecret2fa clears the value of the "secret_2fa" field.
+func (uu *UserUpdate) ClearSecret2fa() *UserUpdate {
+	uu.mutation.ClearSecret2fa()
+	return uu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
 	uu.mutation.SetUpdatedAt(t)
@@ -157,6 +191,15 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 	}
+	if value, ok := uu.mutation.Enable2fa(); ok {
+		_spec.SetField(user.FieldEnable2fa, field.TypeBool, value)
+	}
+	if value, ok := uu.mutation.Secret2fa(); ok {
+		_spec.SetField(user.FieldSecret2fa, field.TypeString, value)
+	}
+	if uu.mutation.Secret2faCleared() {
+		_spec.ClearField(user.FieldSecret2fa, field.TypeString)
+	}
 	if value, ok := uu.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -219,6 +262,40 @@ func (uuo *UserUpdateOne) SetNillableEmail(s *string) *UserUpdateOne {
 	if s != nil {
 		uuo.SetEmail(*s)
 	}
+	return uuo
+}
+
+// SetEnable2fa sets the "enable_2fa" field.
+func (uuo *UserUpdateOne) SetEnable2fa(b bool) *UserUpdateOne {
+	uuo.mutation.SetEnable2fa(b)
+	return uuo
+}
+
+// SetNillableEnable2fa sets the "enable_2fa" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableEnable2fa(b *bool) *UserUpdateOne {
+	if b != nil {
+		uuo.SetEnable2fa(*b)
+	}
+	return uuo
+}
+
+// SetSecret2fa sets the "secret_2fa" field.
+func (uuo *UserUpdateOne) SetSecret2fa(s string) *UserUpdateOne {
+	uuo.mutation.SetSecret2fa(s)
+	return uuo
+}
+
+// SetNillableSecret2fa sets the "secret_2fa" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableSecret2fa(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetSecret2fa(*s)
+	}
+	return uuo
+}
+
+// ClearSecret2fa clears the value of the "secret_2fa" field.
+func (uuo *UserUpdateOne) ClearSecret2fa() *UserUpdateOne {
+	uuo.mutation.ClearSecret2fa()
 	return uuo
 }
 
@@ -338,6 +415,15 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Enable2fa(); ok {
+		_spec.SetField(user.FieldEnable2fa, field.TypeBool, value)
+	}
+	if value, ok := uuo.mutation.Secret2fa(); ok {
+		_spec.SetField(user.FieldSecret2fa, field.TypeString, value)
+	}
+	if uuo.mutation.Secret2faCleared() {
+		_spec.ClearField(user.FieldSecret2fa, field.TypeString)
 	}
 	if value, ok := uuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)

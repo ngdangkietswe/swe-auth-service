@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ngdangkietswe/swe-auth-service/configs"
 	"github.com/ngdangkietswe/swe-auth-service/data/datasource"
+	"github.com/ngdangkietswe/swe-auth-service/grpc/middleware"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/server/auth"
 	"google.golang.org/grpc"
 	"log"
@@ -18,7 +19,9 @@ func NewGrpcServer() {
 	}
 
 	entClient := datasource.NewEntClient()
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(middleware.AuthMiddleware),
+	)
 	auth.NewGrpcHandler(entClient).RegisterGrpcServer(grpcServer)
 
 	if err := grpcServer.Serve(lis); err != nil {

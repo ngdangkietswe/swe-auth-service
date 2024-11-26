@@ -39,6 +39,34 @@ func (uc *UserCreate) SetEmail(s string) *UserCreate {
 	return uc
 }
 
+// SetEnable2fa sets the "enable_2fa" field.
+func (uc *UserCreate) SetEnable2fa(b bool) *UserCreate {
+	uc.mutation.SetEnable2fa(b)
+	return uc
+}
+
+// SetNillableEnable2fa sets the "enable_2fa" field if the given value is not nil.
+func (uc *UserCreate) SetNillableEnable2fa(b *bool) *UserCreate {
+	if b != nil {
+		uc.SetEnable2fa(*b)
+	}
+	return uc
+}
+
+// SetSecret2fa sets the "secret_2fa" field.
+func (uc *UserCreate) SetSecret2fa(s string) *UserCreate {
+	uc.mutation.SetSecret2fa(s)
+	return uc
+}
+
+// SetNillableSecret2fa sets the "secret_2fa" field if the given value is not nil.
+func (uc *UserCreate) SetNillableSecret2fa(s *string) *UserCreate {
+	if s != nil {
+		uc.SetSecret2fa(*s)
+	}
+	return uc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (uc *UserCreate) SetCreatedAt(t time.Time) *UserCreate {
 	uc.mutation.SetCreatedAt(t)
@@ -116,6 +144,10 @@ func (uc *UserCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (uc *UserCreate) defaults() {
+	if _, ok := uc.mutation.Enable2fa(); !ok {
+		v := user.DefaultEnable2fa
+		uc.mutation.SetEnable2fa(v)
+	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		v := user.DefaultCreatedAt
 		uc.mutation.SetCreatedAt(v)
@@ -155,6 +187,9 @@ func (uc *UserCreate) check() error {
 		if err := user.EmailValidator(v); err != nil {
 			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
 		}
+	}
+	if _, ok := uc.mutation.Enable2fa(); !ok {
+		return &ValidationError{Name: "enable_2fa", err: errors.New(`ent: missing required field "User.enable_2fa"`)}
 	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "User.created_at"`)}
@@ -208,6 +243,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.Email(); ok {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 		_node.Email = value
+	}
+	if value, ok := uc.mutation.Enable2fa(); ok {
+		_spec.SetField(user.FieldEnable2fa, field.TypeBool, value)
+		_node.Enable2fa = value
+	}
+	if value, ok := uc.mutation.Secret2fa(); ok {
+		_spec.SetField(user.FieldSecret2fa, field.TypeString, value)
+		_node.Secret2fa = &value
 	}
 	if value, ok := uc.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)

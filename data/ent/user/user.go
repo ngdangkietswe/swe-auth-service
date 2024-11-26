@@ -20,6 +20,10 @@ const (
 	FieldPassword = "password"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
+	// FieldEnable2fa holds the string denoting the enable_2fa field in the database.
+	FieldEnable2fa = "enable_2fa"
+	// FieldSecret2fa holds the string denoting the secret_2fa field in the database.
+	FieldSecret2fa = "secret_2fa"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -34,6 +38,8 @@ var Columns = []string{
 	FieldUsername,
 	FieldPassword,
 	FieldEmail,
+	FieldEnable2fa,
+	FieldSecret2fa,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -55,6 +61,8 @@ var (
 	PasswordValidator func(string) error
 	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	EmailValidator func(string) error
+	// DefaultEnable2fa holds the default value on creation for the "enable_2fa" field.
+	DefaultEnable2fa bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -84,6 +92,16 @@ func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 // ByEmail orders the results by the email field.
 func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
+}
+
+// ByEnable2fa orders the results by the enable_2fa field.
+func ByEnable2fa(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEnable2fa, opts...).ToFunc()
+}
+
+// BySecret2fa orders the results by the secret_2fa field.
+func BySecret2fa(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSecret2fa, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

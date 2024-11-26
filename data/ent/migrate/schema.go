@@ -15,6 +15,8 @@ var (
 		{Name: "username", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
 		{Name: "email", Type: field.TypeString},
+		{Name: "enable_2fa", Type: field.TypeBool, Default: false},
+		{Name: "secret_2fa", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}

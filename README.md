@@ -10,4 +10,5 @@ Go and gRPC, PostgreSQL for the database, Kafka for event streaming, and Docker 
 - [x] [gRPC](https://grpc.io/)
 - [x] [PostgreSQL](https://www.postgresql.org/)
 - [x] [Kafka](https://kafka.apache.org/)
+- [x] [Two-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication)
 - [ ] [Docker](https://www.docker.com/)

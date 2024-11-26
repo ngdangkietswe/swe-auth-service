@@ -70,6 +70,16 @@ func Email(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldEmail, v))
 }
 
+// Enable2fa applies equality check predicate on the "enable_2fa" field. It's identical to Enable2faEQ.
+func Enable2fa(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEnable2fa, v))
+}
+
+// Secret2fa applies equality check predicate on the "secret_2fa" field. It's identical to Secret2faEQ.
+func Secret2fa(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSecret2fa, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -273,6 +283,91 @@ func EmailEqualFold(v string) predicate.User {
 // EmailContainsFold applies the ContainsFold predicate on the "email" field.
 func EmailContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldEmail, v))
+}
+
+// Enable2faEQ applies the EQ predicate on the "enable_2fa" field.
+func Enable2faEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEnable2fa, v))
+}
+
+// Enable2faNEQ applies the NEQ predicate on the "enable_2fa" field.
+func Enable2faNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldEnable2fa, v))
+}
+
+// Secret2faEQ applies the EQ predicate on the "secret_2fa" field.
+func Secret2faEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSecret2fa, v))
+}
+
+// Secret2faNEQ applies the NEQ predicate on the "secret_2fa" field.
+func Secret2faNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldSecret2fa, v))
+}
+
+// Secret2faIn applies the In predicate on the "secret_2fa" field.
+func Secret2faIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldSecret2fa, vs...))
+}
+
+// Secret2faNotIn applies the NotIn predicate on the "secret_2fa" field.
+func Secret2faNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldSecret2fa, vs...))
+}
+
+// Secret2faGT applies the GT predicate on the "secret_2fa" field.
+func Secret2faGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldSecret2fa, v))
+}
+
+// Secret2faGTE applies the GTE predicate on the "secret_2fa" field.
+func Secret2faGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldSecret2fa, v))
+}
+
+// Secret2faLT applies the LT predicate on the "secret_2fa" field.
+func Secret2faLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldSecret2fa, v))
+}
+
+// Secret2faLTE applies the LTE predicate on the "secret_2fa" field.
+func Secret2faLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldSecret2fa, v))
+}
+
+// Secret2faContains applies the Contains predicate on the "secret_2fa" field.
+func Secret2faContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldSecret2fa, v))
+}
+
+// Secret2faHasPrefix applies the HasPrefix predicate on the "secret_2fa" field.
+func Secret2faHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldSecret2fa, v))
+}
+
+// Secret2faHasSuffix applies the HasSuffix predicate on the "secret_2fa" field.
+func Secret2faHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldSecret2fa, v))
+}
+
+// Secret2faIsNil applies the IsNil predicate on the "secret_2fa" field.
+func Secret2faIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldSecret2fa))
+}
+
+// Secret2faNotNil applies the NotNil predicate on the "secret_2fa" field.
+func Secret2faNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldSecret2fa))
+}
+
+// Secret2faEqualFold applies the EqualFold predicate on the "secret_2fa" field.
+func Secret2faEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldSecret2fa, v))
+}
+
+// Secret2faContainsFold applies the ContainsFold predicate on the "secret_2fa" field.
+func Secret2faContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldSecret2fa, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

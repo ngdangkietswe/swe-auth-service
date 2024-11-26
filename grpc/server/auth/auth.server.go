@@ -27,3 +27,8 @@ func (s *GrpcServer) RegisterUser(ctx context.Context, req *auth.User) (*common.
 func (s *GrpcServer) Login(ctx context.Context, req *auth.LoginReq) (*auth.LoginResp, error) {
 	return s.authService.Login(ctx, req)
 }
+
+// EnableOrDisable2FA is a function that implements the EnableOrDisable2FA method of the AuthServiceServer interface
+func (s *GrpcServer) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrDisable2FAReq) (*auth.EnableOrDisable2FAResp, error) {
+	return s.authService.EnableOrDisable2FA(ctx, req)
+}

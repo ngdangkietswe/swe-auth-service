@@ -6,11 +6,27 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 )
 
 type authRepository struct {
 	entClient *ent.Client
+}
+
+// EnableOrDisable2FA is a function that enables or disables 2FA for a user
+func (a authRepository) EnableOrDisable2FA(ctx context.Context, userId string, enable bool) (*ent.User, error) {
+	query := a.entClient.User.UpdateOneID(uuid.MustParse(userId)).SetEnable2fa(enable)
+
+	if enable {
+		query.SetSecret2fa(utils.GenerateSecret())
+	} else {
+		query.SetNillableSecret2fa(nil)
+	}
+
+	entUser, err := query.Save(ctx)
+
+	return entUser, err
 }
 
 // FindByUsernameOrEmail is a function that finds a user by username or email
