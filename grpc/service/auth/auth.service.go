@@ -6,6 +6,7 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/configs"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	grpcutil "github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
@@ -31,9 +32,15 @@ func (a authService) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrD
 		return nil, errors.New("user not found")
 	}
 
-	return &auth.EnableOrDisable2FAResp{
-		QrCodeImageUrl: utils.GenerateTOTPWithSecret(*entUser.Secret2fa),
-	}, nil
+	resp := &auth.EnableOrDisable2FAResp{
+		Success: true,
+	}
+
+	if req.Enable {
+		resp.QrCodeImageUrl = utils.GenerateTOTPWithSecret(*entUser.Secret2fa)
+	}
+
+	return resp, nil
 }
 
 // RegisterUser is a function that registers a new user.
@@ -85,73 +92,48 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 	// Check if user exists with username
 	entUser, err = a.authRepository.FindByUsername(ctx, req.Username)
 	if err != nil {
-		return &auth.LoginResp{
-			Error: &common.Error{
-				Code:    401,
-				Message: "Username or password is incorrect",
-			},
-		}, nil
+		return mapper.AsFailed("Username or password is incorrect")
 	}
 
 	// Compare password
 	if err := utils.CheckPasswordHash(entUser.Password, req.Password); err != nil {
-		return &auth.LoginResp{
-			Error: &common.Error{
-				Code:    401,
-				Message: "Username or password is incorrect",
-			},
-		}, nil
+		return mapper.AsFailed("Username or password is incorrect")
 	}
 
 	// Validate 2fa if it is enabled for the user
 	if entUser.Enable2fa {
 		if req.Otp == nil || *req.Otp == "" {
-			return &auth.LoginResp{
-				Error: &common.Error{
-					Code:    401,
-					Message: "Two-factor authentication is required",
-				},
-			}, nil
+			return mapper.AsFailed("Two-factor authentication is required")
 		}
 		if !utils.VerifyOTP(*entUser.Secret2fa, *req.Otp) {
-			return &auth.LoginResp{
-				Error: &common.Error{
-					Code:    401,
-					Message: "Two-factor authentication is incorrect",
-				},
-			}, nil
+			return mapper.AsFailed("Two-factor authentication is incorrect")
 		}
 	}
 
 	// Generate token
 	token, err = utils.GenerateToken(entUser, false)
 	if err != nil {
-		return &auth.LoginResp{
-			Error: &common.Error{
-				Code:    401,
-				Message: "Unknown error",
-			},
-		}, nil
+		return mapper.AsFailed("Unknown error")
 	}
 
 	// Generate refresh token
 	refreshToken, err := utils.GenerateToken(entUser, true)
 	if err != nil {
-		return &auth.LoginResp{
-			Error: &common.Error{
-				Code:    401,
-				Message: "Unknown error",
-			},
-		}, nil
+		return mapper.AsFailed("Unknown error")
 	}
 
 	return &auth.LoginResp{
-		AccessToken:           token,
-		AccessTokenExpiresIn:  configs.GlobalConfig.JwtExp.String(),
-		RefreshToken:          refreshToken,
-		RefreshTokenExpiresIn: configs.GlobalConfig.RefreshTokenExp.String(),
-		TokenType:             "Bearer",
-		TwoFactorAuth:         entUser.Enable2fa,
+		Success: true,
+		Resp: &auth.LoginResp_Data_{
+			Data: &auth.LoginResp_Data{
+				AccessToken:           token,
+				AccessTokenExpiresIn:  configs.GlobalConfig.JwtExp.String(),
+				RefreshToken:          refreshToken,
+				RefreshTokenExpiresIn: configs.GlobalConfig.RefreshTokenExp.String(),
+				TokenType:             "Bearer",
+				TwoFactorAuth:         entUser.Enable2fa,
+			},
+		},
 	}, nil
 }
 

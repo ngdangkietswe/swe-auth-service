@@ -14,14 +14,14 @@ func GenerateSecret() string {
 }
 
 // GenerateTOTPWithSecret is a function that generates a TOTP URI with the secret key.
-func GenerateTOTPWithSecret(secret string) string {
+func GenerateTOTPWithSecret(secret string) *string {
 	uri := gotp.NewDefaultTOTP(secret).ProvisioningUri("swe@yopmail.com", "SweApp")
 	log.Printf("[2FA] TOTP URI: %s", uri)
 
 	err := qrcode.WriteFile(uri, qrcode.Medium, 256, "qr.png")
 	if err != nil {
 		log.Printf("[2FA] Error generating QR code: %s", err.Error())
-		return ""
+		return nil
 	}
 
 	qrterminal.GenerateWithConfig(uri, qrterminal.Config{
@@ -31,7 +31,7 @@ func GenerateTOTPWithSecret(secret string) string {
 		WhiteChar: qrterminal.WHITE,
 	})
 
-	return uri
+	return &uri
 }
 
 // VerifyOTP is a function that verifies the OTP code with the secret key.

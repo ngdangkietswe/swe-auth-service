@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
-	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241126023242-2e1568297bed
+	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241126074213-9fe611abad55
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e

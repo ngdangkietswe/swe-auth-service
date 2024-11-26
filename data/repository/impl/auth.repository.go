@@ -21,7 +21,7 @@ func (a authRepository) EnableOrDisable2FA(ctx context.Context, userId string, e
 	if enable {
 		query.SetSecret2fa(utils.GenerateSecret())
 	} else {
-		query.SetNillableSecret2fa(nil)
+		query.SetSecret2fa("")
 	}
 
 	entUser, err := query.Save(ctx)
