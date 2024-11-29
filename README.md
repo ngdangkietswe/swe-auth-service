@@ -1,7 +1,8 @@
 # SWE-AUTH-SERVICE
 
 This is a simple authentication service that allows users to sign up, sign in, and sign out. The service is built using
-Go and gRPC, PostgreSQL for the database, Kafka for event streaming, and Docker for containerization.
+Go and gRPC, PostgreSQL for the database, Kafka for event streaming, and Docker for containerization, and GitHub Actions
+for CI/CD.
 
 ## Tech stack
 
@@ -11,4 +12,5 @@ Go and gRPC, PostgreSQL for the database, Kafka for event streaming, and Docker 
 - [x] [PostgreSQL](https://www.postgresql.org/)
 - [x] [Kafka](https://kafka.apache.org/)
 - [x] [Two-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication)
-- [ ] [Docker](https://www.docker.com/)
+- [x] [Docker](https://www.docker.com/)
+- [x] [GitHub Actions](https://docs.github.com/en/actions)
