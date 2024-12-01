@@ -34,5 +34,8 @@ RUN apk --no-cache add ca-certificates
 # Copy the compiled binary from the build stage
 COPY --from=builder app .
 
+# Expose the application port (update as per your app's requirement)
+EXPOSE 7020
+
 # Default command to run the application
 CMD ./app
