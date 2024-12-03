@@ -3,16 +3,18 @@ package auth
 import (
 	"context"
 	"errors"
-	"github.com/ngdangkietswe/swe-auth-service/configs"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
-	grpcutil "github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/model"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/producer"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
+	"github.com/ngdangkietswe/swe-go-common-shared/config"
+	"github.com/ngdangkietswe/swe-go-common-shared/grpc/domain"
+	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
+	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
 	"time"
@@ -110,14 +112,20 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 		}
 	}
 
+	grpcUser := &domain.GrpcUser{
+		Id:       entUser.ID.String(),
+		Username: entUser.Username,
+		Email:    entUser.Email,
+	}
+
 	// Generate token
-	token, err = utils.GenerateToken(entUser, false)
+	token, err = commonutil.GenerateToken(grpcUser, false)
 	if err != nil {
 		return mapper.AsFailed("Unknown error")
 	}
 
 	// Generate refresh token
-	refreshToken, err := utils.GenerateToken(entUser, true)
+	refreshToken, err := commonutil.GenerateToken(grpcUser, true)
 	if err != nil {
 		return mapper.AsFailed("Unknown error")
 	}
@@ -127,9 +135,9 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 		Resp: &auth.LoginResp_Data_{
 			Data: &auth.LoginResp_Data{
 				AccessToken:           token,
-				AccessTokenExpiresIn:  configs.GlobalConfig.JwtExp.String(),
+				AccessTokenExpiresIn:  config.GetString("JWT_EXPIRATION", ""),
 				RefreshToken:          refreshToken,
-				RefreshTokenExpiresIn: configs.GlobalConfig.RefreshTokenExp.String(),
+				RefreshTokenExpiresIn: config.GetString("REFRESH_TOKEN_EXPIRATION", ""),
 				TokenType:             "Bearer",
 				TwoFactorAuth:         entUser.Enable2fa,
 			},

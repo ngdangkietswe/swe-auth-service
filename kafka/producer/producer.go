@@ -3,9 +3,10 @@ package producer
 import (
 	"context"
 	"encoding/json"
-	"github.com/ngdangkietswe/swe-auth-service/configs"
+	"github.com/ngdangkietswe/swe-go-common-shared/config"
 	"github.com/segmentio/kafka-go"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type KProducer struct {
 func NewKProducer(topic string) *KProducer {
 	return &KProducer{
 		Writer: &kafka.Writer{
-			Addr:     kafka.TCP(configs.GlobalConfig.KafkaBrokers),
+			Addr:     kafka.TCP(strings.Split(config.GetString("KAFKA_BROKERS", "localhost:9092"), ",")...),
 			Topic:    topic,
 			Balancer: &kafka.LeastBytes{},
 		},

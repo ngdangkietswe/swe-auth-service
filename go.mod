@@ -11,11 +11,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
-	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241126074213-9fe611abad55
+	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20241203041508-f749df2d96b7
+	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241130074735-66eb2599def8
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	github.com/spf13/viper v1.19.0
 	github.com/xlzd/gotp v0.1.0
 	golang.org/x/crypto v0.29.0
 	google.golang.org/grpc v1.68.0
@@ -45,6 +45,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.19.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect

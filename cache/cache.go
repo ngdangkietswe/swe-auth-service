@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ngdangkietswe/swe-auth-service/configs"
+	"github.com/ngdangkietswe/swe-go-common-shared/config"
 	"github.com/redis/go-redis/v9"
 	"log"
 	"time"
@@ -16,6 +16,11 @@ type RedisCache struct {
 	client  *redis.Client
 	timeout time.Duration
 }
+
+var (
+	RedisHost = config.GetString("REDIS_HOST", "localhost")
+	RedisPort = config.GetInt("REDIS_PORT", 6379)
+)
 
 // Option defines a function type for configuring the RedisCache.
 type Option func(*RedisCache)
@@ -29,7 +34,7 @@ func WithTimeout(timeout time.Duration) Option {
 
 func NewRedisCache(options ...Option) *RedisCache {
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", configs.GlobalConfig.RedisHost, configs.GlobalConfig.RedisPort),
+		Addr:     fmt.Sprintf("%s:%d", RedisHost, RedisPort),
 		Password: "",
 		DB:       0,
 	})
