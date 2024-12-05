@@ -57,8 +57,8 @@ jobs:
           echo "🔖 Tagging Docker image as $IMAGE_TAG..."
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-          # Build the Docker image with --no-cache flag
-          docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
+          # Build the Docker image
+          docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
 
       - name: Confirm Docker Build
         run: |
