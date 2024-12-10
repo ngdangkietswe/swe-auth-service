@@ -10,6 +10,9 @@ on:
     paths-ignore:
       - '**/*.md'
 
+env:
+  IMAGE_NAME: 01092002/swe-auth-service
+
 jobs:
   build-and-push:
     name: Build and Push Docker Image
@@ -18,9 +21,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
-    env:
-      IMAGE_NAME: 01092002/swe-auth-service
 
     outputs:
       IMAGE_TAG: ${{ steps.build_image.outputs.image_tag }}
@@ -32,10 +32,6 @@ jobs:
       - name: Extract Branch Name
         id: extract_branch
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-
-      - name: Git Commit Data
-        id: git_commit_data
-        uses: rlespinasse/git-commit-data-action@v1.5.0
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -55,7 +51,7 @@ jobs:
           # Extract details for tagging
           TIMESTAMP=$(TZ=Asia/Ho_Chi_Minh date +"%Y%m%d%H%M%S")
           BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
-          COMMIT_SHA=${{ steps.git_commit_data.outputs.short_sha }}
+          COMMIT_SHA=${{ env.GIT_COMMIT_SHORT_SHA }}
           IMAGE_TAG="$BRANCH_NAME-$COMMIT_SHA-$TIMESTAMP"
 
           echo "🔖 Tagging Docker image as $IMAGE_TAG..."
@@ -83,6 +79,7 @@ jobs:
     name: Modify Kubernetes Deployment
     needs: build-and-push
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -103,12 +100,10 @@ jobs:
           IMAGE_TAG=${{ needs.build-and-push.outputs.IMAGE_TAG }}
           
           # Modify the deployment files
-          sed -i "s|image: 01092002/swe-auth-service:.*|image: 01092002/swe-auth-service:$IMAGE_TAG|" k8s/swe-auth-service/deployment.yml
+          sed -i "s|image: $IMAGE_NAME:.*|image: $IMAGE_NAME:$IMAGE_TAG|" k8s/swe-auth-service/deployment.yml
           
           git add .
-          git commit -m "chore: update image tag in deployment files"
+          git commit -m "chore(swe-auth-service): update image tag to $IMAGE_TAG"
           git push origin main
           
           echo "✅ Kubernetes deployment files updated successfully."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
