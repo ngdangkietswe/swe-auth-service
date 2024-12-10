@@ -51,7 +51,7 @@ jobs:
           # Extract details for tagging
           TIMESTAMP=$(TZ=Asia/Ho_Chi_Minh date +"%Y%m%d%H%M%S")
           BRANCH_NAME=${{ steps.extract_branch.outputs.branch }}
-          COMMIT_SHA=${{ env.GIT_COMMIT_SHORT_SHA }}
+          COMMIT_SHA=$(git rev-parse --short HEAD)
           IMAGE_TAG="$BRANCH_NAME-$COMMIT_SHA-$TIMESTAMP"
 
           echo "🔖 Tagging Docker image as $IMAGE_TAG..."
