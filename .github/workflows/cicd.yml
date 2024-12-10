@@ -74,3 +74,37 @@ jobs:
           docker push $IMAGE_NAME:latest
 
           echo "✅ Docker images pushed successfully: $IMAGE_NAME:${{ env.IMAGE_TAG }} and $IMAGE_NAME:latest."
+
+  modify-k8s:
+    name: Modify Kubernetes Deployment
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          repository: 'ngdangkietswe/swe-infrastructure'
+          token: ${{ secrets.PAT }}
+
+      - name: Modify Image Tag
+        id: modify_image_tag
+        run: |
+          set -e  # Exit on any error
+          echo "🔧 Modifying Kubernetes deployment files..."
+          
+          git config --global user.name "ngdangkietse"
+          git config --global user.email "kietnguyen17052001@gmail.com"          
+
+          # Extract the image tag
+          IMAGE_TAG=$(echo ${{ needs.build-and-push.outputs.IMAGE_TAG }} | cut -d'-' -f 1)
+
+          # Modify the deployment files
+          sed -i "s|image: 01092002/swe-auth-service:.*|image: 01092002/swe-auth-service:$IMAGE_TAG|" k8s/swe-auth-service/deployment.yml
+          
+          git add .
+          git commit -m "chore: update image tag in deployment files"
+          git push origin main
+          
+          echo "✅ Kubernetes deployment files updated successfully."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
