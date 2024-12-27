@@ -6,5 +6,17 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Action is the predicate function for action builders.
+type Action func(*sql.Selector)
+
+// Permission is the predicate function for permission builders.
+type Permission func(*sql.Selector)
+
+// Resource is the predicate function for resource builders.
+type Resource func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// UsersPermission is the predicate function for userspermission builders.
+type UsersPermission func(*sql.Selector)

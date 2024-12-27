@@ -12,7 +12,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/action"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/resource"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -73,7 +77,11 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			user.Table: user.ValidColumn,
+			action.Table:          action.ValidColumn,
+			permission.Table:      permission.ValidColumn,
+			resource.Table:        resource.ValidColumn,
+			user.Table:            user.ValidColumn,
+			userspermission.Table: userspermission.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

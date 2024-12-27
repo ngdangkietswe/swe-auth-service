@@ -11,8 +11,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/predicate"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -118,9 +120,45 @@ func (uu *UserUpdate) SetNillableUpdatedAt(t *time.Time) *UserUpdate {
 	return uu
 }
 
+// AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
+func (uu *UserUpdate) AddUsersPermissionIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddUsersPermissionIDs(ids...)
+	return uu
+}
+
+// AddUsersPermissions adds the "users_permissions" edges to the UsersPermission entity.
+func (uu *UserUpdate) AddUsersPermissions(u ...*UsersPermission) *UserUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.AddUsersPermissionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearUsersPermissions clears all "users_permissions" edges to the UsersPermission entity.
+func (uu *UserUpdate) ClearUsersPermissions() *UserUpdate {
+	uu.mutation.ClearUsersPermissions()
+	return uu
+}
+
+// RemoveUsersPermissionIDs removes the "users_permissions" edge to UsersPermission entities by IDs.
+func (uu *UserUpdate) RemoveUsersPermissionIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveUsersPermissionIDs(ids...)
+	return uu
+}
+
+// RemoveUsersPermissions removes "users_permissions" edges to UsersPermission entities.
+func (uu *UserUpdate) RemoveUsersPermissions(u ...*UsersPermission) *UserUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uu.RemoveUsersPermissionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -202,6 +240,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uu.mutation.UsersPermissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedUsersPermissionsIDs(); len(nodes) > 0 && !uu.mutation.UsersPermissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -313,9 +396,45 @@ func (uuo *UserUpdateOne) SetNillableUpdatedAt(t *time.Time) *UserUpdateOne {
 	return uuo
 }
 
+// AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
+func (uuo *UserUpdateOne) AddUsersPermissionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddUsersPermissionIDs(ids...)
+	return uuo
+}
+
+// AddUsersPermissions adds the "users_permissions" edges to the UsersPermission entity.
+func (uuo *UserUpdateOne) AddUsersPermissions(u ...*UsersPermission) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.AddUsersPermissionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearUsersPermissions clears all "users_permissions" edges to the UsersPermission entity.
+func (uuo *UserUpdateOne) ClearUsersPermissions() *UserUpdateOne {
+	uuo.mutation.ClearUsersPermissions()
+	return uuo
+}
+
+// RemoveUsersPermissionIDs removes the "users_permissions" edge to UsersPermission entities by IDs.
+func (uuo *UserUpdateOne) RemoveUsersPermissionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveUsersPermissionIDs(ids...)
+	return uuo
+}
+
+// RemoveUsersPermissions removes "users_permissions" edges to UsersPermission entities.
+func (uuo *UserUpdateOne) RemoveUsersPermissions(u ...*UsersPermission) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uuo.RemoveUsersPermissionIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -427,6 +546,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if value, ok := uuo.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uuo.mutation.UsersPermissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedUsersPermissionsIDs(); len(nodes) > 0 && !uuo.mutation.UsersPermissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

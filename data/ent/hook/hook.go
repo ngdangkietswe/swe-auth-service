@@ -9,6 +9,42 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 )
 
+// The ActionFunc type is an adapter to allow the use of ordinary
+// function as Action mutator.
+type ActionFunc func(context.Context, *ent.ActionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ActionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ActionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ActionMutation", m)
+}
+
+// The PermissionFunc type is an adapter to allow the use of ordinary
+// function as Permission mutator.
+type PermissionFunc func(context.Context, *ent.PermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PermissionMutation", m)
+}
+
+// The ResourceFunc type is an adapter to allow the use of ordinary
+// function as Resource mutator.
+type ResourceFunc func(context.Context, *ent.ResourceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ResourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ResourceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ResourceMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)
@@ -19,6 +55,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+}
+
+// The UsersPermissionFunc type is an adapter to allow the use of ordinary
+// function as UsersPermission mutator.
+type UsersPermissionFunc func(context.Context, *ent.UsersPermissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UsersPermissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UsersPermissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UsersPermissionMutation", m)
 }
 
 // Condition is a hook condition function.

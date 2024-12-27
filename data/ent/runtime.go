@@ -6,14 +6,44 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/action"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/resource"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/schema"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	actionFields := schema.Action{}.Fields()
+	_ = actionFields
+	// actionDescName is the schema descriptor for name field.
+	actionDescName := actionFields[1].Descriptor()
+	// action.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	action.NameValidator = actionDescName.Validators[0].(func(string) error)
+	// actionDescID is the schema descriptor for id field.
+	actionDescID := actionFields[0].Descriptor()
+	// action.DefaultID holds the default value on creation for the id field.
+	action.DefaultID = actionDescID.Default.(func() uuid.UUID)
+	permissionFields := schema.Permission{}.Fields()
+	_ = permissionFields
+	// permissionDescID is the schema descriptor for id field.
+	permissionDescID := permissionFields[0].Descriptor()
+	// permission.DefaultID holds the default value on creation for the id field.
+	permission.DefaultID = permissionDescID.Default.(func() uuid.UUID)
+	resourceFields := schema.Resource{}.Fields()
+	_ = resourceFields
+	// resourceDescName is the schema descriptor for name field.
+	resourceDescName := resourceFields[1].Descriptor()
+	// resource.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	resource.NameValidator = resourceDescName.Validators[0].(func(string) error)
+	// resourceDescID is the schema descriptor for id field.
+	resourceDescID := resourceFields[0].Descriptor()
+	// resource.DefaultID holds the default value on creation for the id field.
+	resource.DefaultID = resourceDescID.Default.(func() uuid.UUID)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescUsername is the schema descriptor for username field.
@@ -44,4 +74,10 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	userspermissionFields := schema.UsersPermission{}.Fields()
+	_ = userspermissionFields
+	// userspermissionDescID is the schema descriptor for id field.
+	userspermissionDescID := userspermissionFields[0].Descriptor()
+	// userspermission.DefaultID holds the default value on creation for the id field.
+	userspermission.DefaultID = userspermissionDescID.Default.(func() uuid.UUID)
 }

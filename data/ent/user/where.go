@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/predicate"
 )
@@ -448,6 +449,29 @@ func UpdatedAtLT(v time.Time) predicate.User {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasUsersPermissions applies the HasEdge predicate on the "users_permissions" edge.
+func HasUsersPermissions() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUsersPermissionsWith applies the HasEdge predicate on the "users_permissions" edge with a given conditions (other predicates).
+func HasUsersPermissionsWith(preds ...predicate.UsersPermission) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newUsersPermissionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

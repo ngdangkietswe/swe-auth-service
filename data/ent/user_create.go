@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -107,6 +108,21 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 		uc.SetID(*u)
 	}
 	return uc
+}
+
+// AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
+func (uc *UserCreate) AddUsersPermissionIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddUsersPermissionIDs(ids...)
+	return uc
+}
+
+// AddUsersPermissions adds the "users_permissions" edges to the UsersPermission entity.
+func (uc *UserCreate) AddUsersPermissions(u ...*UsersPermission) *UserCreate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddUsersPermissionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -259,6 +275,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := uc.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   user.UsersPermissionsTable,
+			Columns: user.UsersPermissionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

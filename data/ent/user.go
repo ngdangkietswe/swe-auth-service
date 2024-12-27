@@ -31,8 +31,29 @@ type User struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges        UserEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// UsersPermissions holds the value of the users_permissions edge.
+	UsersPermissions []*UsersPermission `json:"users_permissions,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UsersPermissionsOrErr returns the UsersPermissions value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) UsersPermissionsOrErr() ([]*UsersPermission, error) {
+	if e.loadedTypes[0] {
+		return e.UsersPermissions, nil
+	}
+	return nil, &NotLoadedError{edge: "users_permissions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -123,6 +144,11 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
+}
+
+// QueryUsersPermissions queries the "users_permissions" edge of the User entity.
+func (u *User) QueryUsersPermissions() *UsersPermissionQuery {
+	return NewUserClient(u.config).QueryUsersPermissions(u)
 }
 
 // Update returns a builder for updating this User.

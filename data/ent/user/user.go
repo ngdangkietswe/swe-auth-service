@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -28,8 +29,15 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeUsersPermissions holds the string denoting the users_permissions edge name in mutations.
+	EdgeUsersPermissions = "users_permissions"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// UsersPermissionsTable is the table that holds the users_permissions relation/edge. The primary key declared below.
+	UsersPermissionsTable = "user_users_permissions"
+	// UsersPermissionsInverseTable is the table name for the UsersPermission entity.
+	// It exists in this package in order to avoid circular dependency with the "userspermission" package.
+	UsersPermissionsInverseTable = "users_permission"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -43,6 +51,12 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
+
+var (
+	// UsersPermissionsPrimaryKey and UsersPermissionsColumn2 are the table columns denoting the
+	// primary key for the users_permissions relation (M2M).
+	UsersPermissionsPrimaryKey = []string{"user_id", "users_permission_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -112,4 +126,25 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByUsersPermissionsCount orders the results by users_permissions count.
+func ByUsersPermissionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUsersPermissionsStep(), opts...)
+	}
+}
+
+// ByUsersPermissions orders the results by users_permissions terms.
+func ByUsersPermissions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUsersPermissionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newUsersPermissionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UsersPermissionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+	)
 }

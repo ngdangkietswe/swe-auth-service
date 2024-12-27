@@ -12,8 +12,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/action"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/predicate"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/resource"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
 const (
@@ -25,26 +29,1756 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeUser = "User"
+	TypeAction          = "Action"
+	TypePermission      = "Permission"
+	TypeResource        = "Resource"
+	TypeUser            = "User"
+	TypeUsersPermission = "UsersPermission"
 )
+
+// ActionMutation represents an operation that mutates the Action nodes in the graph.
+type ActionMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	name               *string
+	description        *string
+	clearedFields      map[string]struct{}
+	permissions        map[uuid.UUID]struct{}
+	removedpermissions map[uuid.UUID]struct{}
+	clearedpermissions bool
+	done               bool
+	oldValue           func(context.Context) (*Action, error)
+	predicates         []predicate.Action
+}
+
+var _ ent.Mutation = (*ActionMutation)(nil)
+
+// actionOption allows management of the mutation configuration using functional options.
+type actionOption func(*ActionMutation)
+
+// newActionMutation creates new mutation for the Action entity.
+func newActionMutation(c config, op Op, opts ...actionOption) *ActionMutation {
+	m := &ActionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAction,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withActionID sets the ID field of the mutation.
+func withActionID(id uuid.UUID) actionOption {
+	return func(m *ActionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Action
+		)
+		m.oldValue = func(ctx context.Context) (*Action, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Action.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAction sets the old Action of the mutation.
+func withAction(node *Action) actionOption {
+	return func(m *ActionMutation) {
+		m.oldValue = func(context.Context) (*Action, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ActionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ActionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Action entities.
+func (m *ActionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ActionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ActionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Action.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *ActionMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ActionMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Action entity.
+// If the Action object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ActionMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ActionMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ActionMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Action entity.
+// If the Action object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ActionMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[action.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ActionMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[action.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ActionMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, action.FieldDescription)
+}
+
+// AddPermissionIDs adds the "permissions" edge to the Permission entity by ids.
+func (m *ActionMutation) AddPermissionIDs(ids ...uuid.UUID) {
+	if m.permissions == nil {
+		m.permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.permissions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPermissions clears the "permissions" edge to the Permission entity.
+func (m *ActionMutation) ClearPermissions() {
+	m.clearedpermissions = true
+}
+
+// PermissionsCleared reports if the "permissions" edge to the Permission entity was cleared.
+func (m *ActionMutation) PermissionsCleared() bool {
+	return m.clearedpermissions
+}
+
+// RemovePermissionIDs removes the "permissions" edge to the Permission entity by IDs.
+func (m *ActionMutation) RemovePermissionIDs(ids ...uuid.UUID) {
+	if m.removedpermissions == nil {
+		m.removedpermissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.permissions, ids[i])
+		m.removedpermissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPermissions returns the removed IDs of the "permissions" edge to the Permission entity.
+func (m *ActionMutation) RemovedPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedpermissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PermissionsIDs returns the "permissions" edge IDs in the mutation.
+func (m *ActionMutation) PermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPermissions resets all changes to the "permissions" edge.
+func (m *ActionMutation) ResetPermissions() {
+	m.permissions = nil
+	m.clearedpermissions = false
+	m.removedpermissions = nil
+}
+
+// Where appends a list predicates to the ActionMutation builder.
+func (m *ActionMutation) Where(ps ...predicate.Action) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ActionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ActionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Action, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ActionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ActionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Action).
+func (m *ActionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ActionMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.name != nil {
+		fields = append(fields, action.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, action.FieldDescription)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ActionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case action.FieldName:
+		return m.Name()
+	case action.FieldDescription:
+		return m.Description()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ActionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case action.FieldName:
+		return m.OldName(ctx)
+	case action.FieldDescription:
+		return m.OldDescription(ctx)
+	}
+	return nil, fmt.Errorf("unknown Action field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ActionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case action.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case action.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Action field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ActionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ActionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ActionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Action numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ActionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(action.FieldDescription) {
+		fields = append(fields, action.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ActionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ActionMutation) ClearField(name string) error {
+	switch name {
+	case action.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Action nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ActionMutation) ResetField(name string) error {
+	switch name {
+	case action.FieldName:
+		m.ResetName()
+		return nil
+	case action.FieldDescription:
+		m.ResetDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Action field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ActionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.permissions != nil {
+		edges = append(edges, action.EdgePermissions)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ActionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case action.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.permissions))
+		for id := range m.permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ActionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedpermissions != nil {
+		edges = append(edges, action.EdgePermissions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ActionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case action.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.removedpermissions))
+		for id := range m.removedpermissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ActionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedpermissions {
+		edges = append(edges, action.EdgePermissions)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ActionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case action.EdgePermissions:
+		return m.clearedpermissions
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ActionMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Action unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ActionMutation) ResetEdge(name string) error {
+	switch name {
+	case action.EdgePermissions:
+		m.ResetPermissions()
+		return nil
+	}
+	return fmt.Errorf("unknown Action edge %s", name)
+}
+
+// PermissionMutation represents an operation that mutates the Permission nodes in the graph.
+type PermissionMutation struct {
+	config
+	op                       Op
+	typ                      string
+	id                       *uuid.UUID
+	action_id                *uuid.UUID
+	resource_id              *uuid.UUID
+	description              *string
+	clearedFields            map[string]struct{}
+	action                   map[uuid.UUID]struct{}
+	removedaction            map[uuid.UUID]struct{}
+	clearedaction            bool
+	resource                 map[uuid.UUID]struct{}
+	removedresource          map[uuid.UUID]struct{}
+	clearedresource          bool
+	users_permissions        map[uuid.UUID]struct{}
+	removedusers_permissions map[uuid.UUID]struct{}
+	clearedusers_permissions bool
+	done                     bool
+	oldValue                 func(context.Context) (*Permission, error)
+	predicates               []predicate.Permission
+}
+
+var _ ent.Mutation = (*PermissionMutation)(nil)
+
+// permissionOption allows management of the mutation configuration using functional options.
+type permissionOption func(*PermissionMutation)
+
+// newPermissionMutation creates new mutation for the Permission entity.
+func newPermissionMutation(c config, op Op, opts ...permissionOption) *PermissionMutation {
+	m := &PermissionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePermission,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPermissionID sets the ID field of the mutation.
+func withPermissionID(id uuid.UUID) permissionOption {
+	return func(m *PermissionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Permission
+		)
+		m.oldValue = func(ctx context.Context) (*Permission, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Permission.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPermission sets the old Permission of the mutation.
+func withPermission(node *Permission) permissionOption {
+	return func(m *PermissionMutation) {
+		m.oldValue = func(context.Context) (*Permission, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PermissionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PermissionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Permission entities.
+func (m *PermissionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PermissionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PermissionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Permission.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetActionID sets the "action_id" field.
+func (m *PermissionMutation) SetActionID(u uuid.UUID) {
+	m.action_id = &u
+}
+
+// ActionID returns the value of the "action_id" field in the mutation.
+func (m *PermissionMutation) ActionID() (r uuid.UUID, exists bool) {
+	v := m.action_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionID returns the old "action_id" field's value of the Permission entity.
+// If the Permission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PermissionMutation) OldActionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionID: %w", err)
+	}
+	return oldValue.ActionID, nil
+}
+
+// ResetActionID resets all changes to the "action_id" field.
+func (m *PermissionMutation) ResetActionID() {
+	m.action_id = nil
+}
+
+// SetResourceID sets the "resource_id" field.
+func (m *PermissionMutation) SetResourceID(u uuid.UUID) {
+	m.resource_id = &u
+}
+
+// ResourceID returns the value of the "resource_id" field in the mutation.
+func (m *PermissionMutation) ResourceID() (r uuid.UUID, exists bool) {
+	v := m.resource_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResourceID returns the old "resource_id" field's value of the Permission entity.
+// If the Permission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PermissionMutation) OldResourceID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResourceID: %w", err)
+	}
+	return oldValue.ResourceID, nil
+}
+
+// ResetResourceID resets all changes to the "resource_id" field.
+func (m *PermissionMutation) ResetResourceID() {
+	m.resource_id = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *PermissionMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *PermissionMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Permission entity.
+// If the Permission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PermissionMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *PermissionMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[permission.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *PermissionMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[permission.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *PermissionMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, permission.FieldDescription)
+}
+
+// AddActionIDs adds the "action" edge to the Action entity by ids.
+func (m *PermissionMutation) AddActionIDs(ids ...uuid.UUID) {
+	if m.action == nil {
+		m.action = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.action[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAction clears the "action" edge to the Action entity.
+func (m *PermissionMutation) ClearAction() {
+	m.clearedaction = true
+}
+
+// ActionCleared reports if the "action" edge to the Action entity was cleared.
+func (m *PermissionMutation) ActionCleared() bool {
+	return m.clearedaction
+}
+
+// RemoveActionIDs removes the "action" edge to the Action entity by IDs.
+func (m *PermissionMutation) RemoveActionIDs(ids ...uuid.UUID) {
+	if m.removedaction == nil {
+		m.removedaction = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.action, ids[i])
+		m.removedaction[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAction returns the removed IDs of the "action" edge to the Action entity.
+func (m *PermissionMutation) RemovedActionIDs() (ids []uuid.UUID) {
+	for id := range m.removedaction {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ActionIDs returns the "action" edge IDs in the mutation.
+func (m *PermissionMutation) ActionIDs() (ids []uuid.UUID) {
+	for id := range m.action {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAction resets all changes to the "action" edge.
+func (m *PermissionMutation) ResetAction() {
+	m.action = nil
+	m.clearedaction = false
+	m.removedaction = nil
+}
+
+// AddResourceIDs adds the "resource" edge to the Resource entity by ids.
+func (m *PermissionMutation) AddResourceIDs(ids ...uuid.UUID) {
+	if m.resource == nil {
+		m.resource = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.resource[ids[i]] = struct{}{}
+	}
+}
+
+// ClearResource clears the "resource" edge to the Resource entity.
+func (m *PermissionMutation) ClearResource() {
+	m.clearedresource = true
+}
+
+// ResourceCleared reports if the "resource" edge to the Resource entity was cleared.
+func (m *PermissionMutation) ResourceCleared() bool {
+	return m.clearedresource
+}
+
+// RemoveResourceIDs removes the "resource" edge to the Resource entity by IDs.
+func (m *PermissionMutation) RemoveResourceIDs(ids ...uuid.UUID) {
+	if m.removedresource == nil {
+		m.removedresource = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.resource, ids[i])
+		m.removedresource[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedResource returns the removed IDs of the "resource" edge to the Resource entity.
+func (m *PermissionMutation) RemovedResourceIDs() (ids []uuid.UUID) {
+	for id := range m.removedresource {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResourceIDs returns the "resource" edge IDs in the mutation.
+func (m *PermissionMutation) ResourceIDs() (ids []uuid.UUID) {
+	for id := range m.resource {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetResource resets all changes to the "resource" edge.
+func (m *PermissionMutation) ResetResource() {
+	m.resource = nil
+	m.clearedresource = false
+	m.removedresource = nil
+}
+
+// AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by ids.
+func (m *PermissionMutation) AddUsersPermissionIDs(ids ...uuid.UUID) {
+	if m.users_permissions == nil {
+		m.users_permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.users_permissions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUsersPermissions clears the "users_permissions" edge to the UsersPermission entity.
+func (m *PermissionMutation) ClearUsersPermissions() {
+	m.clearedusers_permissions = true
+}
+
+// UsersPermissionsCleared reports if the "users_permissions" edge to the UsersPermission entity was cleared.
+func (m *PermissionMutation) UsersPermissionsCleared() bool {
+	return m.clearedusers_permissions
+}
+
+// RemoveUsersPermissionIDs removes the "users_permissions" edge to the UsersPermission entity by IDs.
+func (m *PermissionMutation) RemoveUsersPermissionIDs(ids ...uuid.UUID) {
+	if m.removedusers_permissions == nil {
+		m.removedusers_permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.users_permissions, ids[i])
+		m.removedusers_permissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUsersPermissions returns the removed IDs of the "users_permissions" edge to the UsersPermission entity.
+func (m *PermissionMutation) RemovedUsersPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedusers_permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UsersPermissionsIDs returns the "users_permissions" edge IDs in the mutation.
+func (m *PermissionMutation) UsersPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.users_permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUsersPermissions resets all changes to the "users_permissions" edge.
+func (m *PermissionMutation) ResetUsersPermissions() {
+	m.users_permissions = nil
+	m.clearedusers_permissions = false
+	m.removedusers_permissions = nil
+}
+
+// Where appends a list predicates to the PermissionMutation builder.
+func (m *PermissionMutation) Where(ps ...predicate.Permission) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PermissionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PermissionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Permission, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PermissionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PermissionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Permission).
+func (m *PermissionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PermissionMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.action_id != nil {
+		fields = append(fields, permission.FieldActionID)
+	}
+	if m.resource_id != nil {
+		fields = append(fields, permission.FieldResourceID)
+	}
+	if m.description != nil {
+		fields = append(fields, permission.FieldDescription)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PermissionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case permission.FieldActionID:
+		return m.ActionID()
+	case permission.FieldResourceID:
+		return m.ResourceID()
+	case permission.FieldDescription:
+		return m.Description()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PermissionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case permission.FieldActionID:
+		return m.OldActionID(ctx)
+	case permission.FieldResourceID:
+		return m.OldResourceID(ctx)
+	case permission.FieldDescription:
+		return m.OldDescription(ctx)
+	}
+	return nil, fmt.Errorf("unknown Permission field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PermissionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case permission.FieldActionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionID(v)
+		return nil
+	case permission.FieldResourceID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResourceID(v)
+		return nil
+	case permission.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Permission field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PermissionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PermissionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PermissionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Permission numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PermissionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(permission.FieldDescription) {
+		fields = append(fields, permission.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PermissionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PermissionMutation) ClearField(name string) error {
+	switch name {
+	case permission.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Permission nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PermissionMutation) ResetField(name string) error {
+	switch name {
+	case permission.FieldActionID:
+		m.ResetActionID()
+		return nil
+	case permission.FieldResourceID:
+		m.ResetResourceID()
+		return nil
+	case permission.FieldDescription:
+		m.ResetDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Permission field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PermissionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.action != nil {
+		edges = append(edges, permission.EdgeAction)
+	}
+	if m.resource != nil {
+		edges = append(edges, permission.EdgeResource)
+	}
+	if m.users_permissions != nil {
+		edges = append(edges, permission.EdgeUsersPermissions)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PermissionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case permission.EdgeAction:
+		ids := make([]ent.Value, 0, len(m.action))
+		for id := range m.action {
+			ids = append(ids, id)
+		}
+		return ids
+	case permission.EdgeResource:
+		ids := make([]ent.Value, 0, len(m.resource))
+		for id := range m.resource {
+			ids = append(ids, id)
+		}
+		return ids
+	case permission.EdgeUsersPermissions:
+		ids := make([]ent.Value, 0, len(m.users_permissions))
+		for id := range m.users_permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PermissionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedaction != nil {
+		edges = append(edges, permission.EdgeAction)
+	}
+	if m.removedresource != nil {
+		edges = append(edges, permission.EdgeResource)
+	}
+	if m.removedusers_permissions != nil {
+		edges = append(edges, permission.EdgeUsersPermissions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PermissionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case permission.EdgeAction:
+		ids := make([]ent.Value, 0, len(m.removedaction))
+		for id := range m.removedaction {
+			ids = append(ids, id)
+		}
+		return ids
+	case permission.EdgeResource:
+		ids := make([]ent.Value, 0, len(m.removedresource))
+		for id := range m.removedresource {
+			ids = append(ids, id)
+		}
+		return ids
+	case permission.EdgeUsersPermissions:
+		ids := make([]ent.Value, 0, len(m.removedusers_permissions))
+		for id := range m.removedusers_permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PermissionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedaction {
+		edges = append(edges, permission.EdgeAction)
+	}
+	if m.clearedresource {
+		edges = append(edges, permission.EdgeResource)
+	}
+	if m.clearedusers_permissions {
+		edges = append(edges, permission.EdgeUsersPermissions)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PermissionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case permission.EdgeAction:
+		return m.clearedaction
+	case permission.EdgeResource:
+		return m.clearedresource
+	case permission.EdgeUsersPermissions:
+		return m.clearedusers_permissions
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PermissionMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Permission unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PermissionMutation) ResetEdge(name string) error {
+	switch name {
+	case permission.EdgeAction:
+		m.ResetAction()
+		return nil
+	case permission.EdgeResource:
+		m.ResetResource()
+		return nil
+	case permission.EdgeUsersPermissions:
+		m.ResetUsersPermissions()
+		return nil
+	}
+	return fmt.Errorf("unknown Permission edge %s", name)
+}
+
+// ResourceMutation represents an operation that mutates the Resource nodes in the graph.
+type ResourceMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	name               *string
+	description        *string
+	clearedFields      map[string]struct{}
+	permissions        map[uuid.UUID]struct{}
+	removedpermissions map[uuid.UUID]struct{}
+	clearedpermissions bool
+	done               bool
+	oldValue           func(context.Context) (*Resource, error)
+	predicates         []predicate.Resource
+}
+
+var _ ent.Mutation = (*ResourceMutation)(nil)
+
+// resourceOption allows management of the mutation configuration using functional options.
+type resourceOption func(*ResourceMutation)
+
+// newResourceMutation creates new mutation for the Resource entity.
+func newResourceMutation(c config, op Op, opts ...resourceOption) *ResourceMutation {
+	m := &ResourceMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeResource,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withResourceID sets the ID field of the mutation.
+func withResourceID(id uuid.UUID) resourceOption {
+	return func(m *ResourceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Resource
+		)
+		m.oldValue = func(ctx context.Context) (*Resource, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Resource.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withResource sets the old Resource of the mutation.
+func withResource(node *Resource) resourceOption {
+	return func(m *ResourceMutation) {
+		m.oldValue = func(context.Context) (*Resource, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ResourceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ResourceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Resource entities.
+func (m *ResourceMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ResourceMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ResourceMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Resource.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *ResourceMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ResourceMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Resource entity.
+// If the Resource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ResourceMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ResourceMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ResourceMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ResourceMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Resource entity.
+// If the Resource object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ResourceMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ResourceMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[resource.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ResourceMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[resource.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ResourceMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, resource.FieldDescription)
+}
+
+// AddPermissionIDs adds the "permissions" edge to the Permission entity by ids.
+func (m *ResourceMutation) AddPermissionIDs(ids ...uuid.UUID) {
+	if m.permissions == nil {
+		m.permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.permissions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPermissions clears the "permissions" edge to the Permission entity.
+func (m *ResourceMutation) ClearPermissions() {
+	m.clearedpermissions = true
+}
+
+// PermissionsCleared reports if the "permissions" edge to the Permission entity was cleared.
+func (m *ResourceMutation) PermissionsCleared() bool {
+	return m.clearedpermissions
+}
+
+// RemovePermissionIDs removes the "permissions" edge to the Permission entity by IDs.
+func (m *ResourceMutation) RemovePermissionIDs(ids ...uuid.UUID) {
+	if m.removedpermissions == nil {
+		m.removedpermissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.permissions, ids[i])
+		m.removedpermissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPermissions returns the removed IDs of the "permissions" edge to the Permission entity.
+func (m *ResourceMutation) RemovedPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedpermissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PermissionsIDs returns the "permissions" edge IDs in the mutation.
+func (m *ResourceMutation) PermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPermissions resets all changes to the "permissions" edge.
+func (m *ResourceMutation) ResetPermissions() {
+	m.permissions = nil
+	m.clearedpermissions = false
+	m.removedpermissions = nil
+}
+
+// Where appends a list predicates to the ResourceMutation builder.
+func (m *ResourceMutation) Where(ps ...predicate.Resource) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ResourceMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ResourceMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Resource, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ResourceMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ResourceMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Resource).
+func (m *ResourceMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ResourceMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.name != nil {
+		fields = append(fields, resource.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, resource.FieldDescription)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ResourceMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case resource.FieldName:
+		return m.Name()
+	case resource.FieldDescription:
+		return m.Description()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ResourceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case resource.FieldName:
+		return m.OldName(ctx)
+	case resource.FieldDescription:
+		return m.OldDescription(ctx)
+	}
+	return nil, fmt.Errorf("unknown Resource field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ResourceMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case resource.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case resource.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Resource field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ResourceMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ResourceMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ResourceMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Resource numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ResourceMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(resource.FieldDescription) {
+		fields = append(fields, resource.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ResourceMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ResourceMutation) ClearField(name string) error {
+	switch name {
+	case resource.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Resource nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ResourceMutation) ResetField(name string) error {
+	switch name {
+	case resource.FieldName:
+		m.ResetName()
+		return nil
+	case resource.FieldDescription:
+		m.ResetDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Resource field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ResourceMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.permissions != nil {
+		edges = append(edges, resource.EdgePermissions)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ResourceMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case resource.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.permissions))
+		for id := range m.permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ResourceMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedpermissions != nil {
+		edges = append(edges, resource.EdgePermissions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ResourceMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case resource.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.removedpermissions))
+		for id := range m.removedpermissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ResourceMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedpermissions {
+		edges = append(edges, resource.EdgePermissions)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ResourceMutation) EdgeCleared(name string) bool {
+	switch name {
+	case resource.EdgePermissions:
+		return m.clearedpermissions
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ResourceMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Resource unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ResourceMutation) ResetEdge(name string) error {
+	switch name {
+	case resource.EdgePermissions:
+		m.ResetPermissions()
+		return nil
+	}
+	return fmt.Errorf("unknown Resource edge %s", name)
+}
 
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	username      *string
-	password      *string
-	email         *string
-	enable_2fa    *bool
-	secret_2fa    *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op                       Op
+	typ                      string
+	id                       *uuid.UUID
+	username                 *string
+	password                 *string
+	email                    *string
+	enable_2fa               *bool
+	secret_2fa               *string
+	created_at               *time.Time
+	updated_at               *time.Time
+	clearedFields            map[string]struct{}
+	users_permissions        map[uuid.UUID]struct{}
+	removedusers_permissions map[uuid.UUID]struct{}
+	clearedusers_permissions bool
+	done                     bool
+	oldValue                 func(context.Context) (*User, error)
+	predicates               []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -416,6 +2150,60 @@ func (m *UserMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by ids.
+func (m *UserMutation) AddUsersPermissionIDs(ids ...uuid.UUID) {
+	if m.users_permissions == nil {
+		m.users_permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.users_permissions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUsersPermissions clears the "users_permissions" edge to the UsersPermission entity.
+func (m *UserMutation) ClearUsersPermissions() {
+	m.clearedusers_permissions = true
+}
+
+// UsersPermissionsCleared reports if the "users_permissions" edge to the UsersPermission entity was cleared.
+func (m *UserMutation) UsersPermissionsCleared() bool {
+	return m.clearedusers_permissions
+}
+
+// RemoveUsersPermissionIDs removes the "users_permissions" edge to the UsersPermission entity by IDs.
+func (m *UserMutation) RemoveUsersPermissionIDs(ids ...uuid.UUID) {
+	if m.removedusers_permissions == nil {
+		m.removedusers_permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.users_permissions, ids[i])
+		m.removedusers_permissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUsersPermissions returns the removed IDs of the "users_permissions" edge to the UsersPermission entity.
+func (m *UserMutation) RemovedUsersPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedusers_permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UsersPermissionsIDs returns the "users_permissions" edge IDs in the mutation.
+func (m *UserMutation) UsersPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.users_permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUsersPermissions resets all changes to the "users_permissions" edge.
+func (m *UserMutation) ResetUsersPermissions() {
+	m.users_permissions = nil
+	m.clearedusers_permissions = false
+	m.removedusers_permissions = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -660,48 +2448,646 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.users_permissions != nil {
+		edges = append(edges, user.EdgeUsersPermissions)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeUsersPermissions:
+		ids := make([]ent.Value, 0, len(m.users_permissions))
+		for id := range m.users_permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedusers_permissions != nil {
+		edges = append(edges, user.EdgeUsersPermissions)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeUsersPermissions:
+		ids := make([]ent.Value, 0, len(m.removedusers_permissions))
+		for id := range m.removedusers_permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedusers_permissions {
+		edges = append(edges, user.EdgeUsersPermissions)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeUsersPermissions:
+		return m.clearedusers_permissions
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeUsersPermissions:
+		m.ResetUsersPermissions()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// UsersPermissionMutation represents an operation that mutates the UsersPermission nodes in the graph.
+type UsersPermissionMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *uuid.UUID
+	user_id           *uuid.UUID
+	permission_id     *uuid.UUID
+	clearedFields     map[string]struct{}
+	user              map[uuid.UUID]struct{}
+	removeduser       map[uuid.UUID]struct{}
+	cleareduser       bool
+	permission        map[uuid.UUID]struct{}
+	removedpermission map[uuid.UUID]struct{}
+	clearedpermission bool
+	done              bool
+	oldValue          func(context.Context) (*UsersPermission, error)
+	predicates        []predicate.UsersPermission
+}
+
+var _ ent.Mutation = (*UsersPermissionMutation)(nil)
+
+// userspermissionOption allows management of the mutation configuration using functional options.
+type userspermissionOption func(*UsersPermissionMutation)
+
+// newUsersPermissionMutation creates new mutation for the UsersPermission entity.
+func newUsersPermissionMutation(c config, op Op, opts ...userspermissionOption) *UsersPermissionMutation {
+	m := &UsersPermissionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeUsersPermission,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withUsersPermissionID sets the ID field of the mutation.
+func withUsersPermissionID(id uuid.UUID) userspermissionOption {
+	return func(m *UsersPermissionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *UsersPermission
+		)
+		m.oldValue = func(ctx context.Context) (*UsersPermission, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().UsersPermission.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withUsersPermission sets the old UsersPermission of the mutation.
+func withUsersPermission(node *UsersPermission) userspermissionOption {
+	return func(m *UsersPermissionMutation) {
+		m.oldValue = func(context.Context) (*UsersPermission, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m UsersPermissionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m UsersPermissionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of UsersPermission entities.
+func (m *UsersPermissionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *UsersPermissionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UsersPermissionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().UsersPermission.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *UsersPermissionMutation) SetUserID(u uuid.UUID) {
+	m.user_id = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *UsersPermissionMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the UsersPermission entity.
+// If the UsersPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsersPermissionMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *UsersPermissionMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetPermissionID sets the "permission_id" field.
+func (m *UsersPermissionMutation) SetPermissionID(u uuid.UUID) {
+	m.permission_id = &u
+}
+
+// PermissionID returns the value of the "permission_id" field in the mutation.
+func (m *UsersPermissionMutation) PermissionID() (r uuid.UUID, exists bool) {
+	v := m.permission_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPermissionID returns the old "permission_id" field's value of the UsersPermission entity.
+// If the UsersPermission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsersPermissionMutation) OldPermissionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPermissionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPermissionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPermissionID: %w", err)
+	}
+	return oldValue.PermissionID, nil
+}
+
+// ResetPermissionID resets all changes to the "permission_id" field.
+func (m *UsersPermissionMutation) ResetPermissionID() {
+	m.permission_id = nil
+}
+
+// AddUserIDs adds the "user" edge to the User entity by ids.
+func (m *UsersPermissionMutation) AddUserIDs(ids ...uuid.UUID) {
+	if m.user == nil {
+		m.user = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.user[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *UsersPermissionMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *UsersPermissionMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// RemoveUserIDs removes the "user" edge to the User entity by IDs.
+func (m *UsersPermissionMutation) RemoveUserIDs(ids ...uuid.UUID) {
+	if m.removeduser == nil {
+		m.removeduser = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.user, ids[i])
+		m.removeduser[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUser returns the removed IDs of the "user" edge to the User entity.
+func (m *UsersPermissionMutation) RemovedUserIDs() (ids []uuid.UUID) {
+	for id := range m.removeduser {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+func (m *UsersPermissionMutation) UserIDs() (ids []uuid.UUID) {
+	for id := range m.user {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *UsersPermissionMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+	m.removeduser = nil
+}
+
+// AddPermissionIDs adds the "permission" edge to the Permission entity by ids.
+func (m *UsersPermissionMutation) AddPermissionIDs(ids ...uuid.UUID) {
+	if m.permission == nil {
+		m.permission = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.permission[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPermission clears the "permission" edge to the Permission entity.
+func (m *UsersPermissionMutation) ClearPermission() {
+	m.clearedpermission = true
+}
+
+// PermissionCleared reports if the "permission" edge to the Permission entity was cleared.
+func (m *UsersPermissionMutation) PermissionCleared() bool {
+	return m.clearedpermission
+}
+
+// RemovePermissionIDs removes the "permission" edge to the Permission entity by IDs.
+func (m *UsersPermissionMutation) RemovePermissionIDs(ids ...uuid.UUID) {
+	if m.removedpermission == nil {
+		m.removedpermission = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.permission, ids[i])
+		m.removedpermission[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPermission returns the removed IDs of the "permission" edge to the Permission entity.
+func (m *UsersPermissionMutation) RemovedPermissionIDs() (ids []uuid.UUID) {
+	for id := range m.removedpermission {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PermissionIDs returns the "permission" edge IDs in the mutation.
+func (m *UsersPermissionMutation) PermissionIDs() (ids []uuid.UUID) {
+	for id := range m.permission {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPermission resets all changes to the "permission" edge.
+func (m *UsersPermissionMutation) ResetPermission() {
+	m.permission = nil
+	m.clearedpermission = false
+	m.removedpermission = nil
+}
+
+// Where appends a list predicates to the UsersPermissionMutation builder.
+func (m *UsersPermissionMutation) Where(ps ...predicate.UsersPermission) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the UsersPermissionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UsersPermissionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.UsersPermission, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *UsersPermissionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UsersPermissionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (UsersPermission).
+func (m *UsersPermissionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *UsersPermissionMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.user_id != nil {
+		fields = append(fields, userspermission.FieldUserID)
+	}
+	if m.permission_id != nil {
+		fields = append(fields, userspermission.FieldPermissionID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *UsersPermissionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case userspermission.FieldUserID:
+		return m.UserID()
+	case userspermission.FieldPermissionID:
+		return m.PermissionID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *UsersPermissionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case userspermission.FieldUserID:
+		return m.OldUserID(ctx)
+	case userspermission.FieldPermissionID:
+		return m.OldPermissionID(ctx)
+	}
+	return nil, fmt.Errorf("unknown UsersPermission field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UsersPermissionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case userspermission.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case userspermission.FieldPermissionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPermissionID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UsersPermission field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *UsersPermissionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *UsersPermissionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UsersPermissionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown UsersPermission numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *UsersPermissionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *UsersPermissionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *UsersPermissionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown UsersPermission nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *UsersPermissionMutation) ResetField(name string) error {
+	switch name {
+	case userspermission.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case userspermission.FieldPermissionID:
+		m.ResetPermissionID()
+		return nil
+	}
+	return fmt.Errorf("unknown UsersPermission field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *UsersPermissionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, userspermission.EdgeUser)
+	}
+	if m.permission != nil {
+		edges = append(edges, userspermission.EdgePermission)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *UsersPermissionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case userspermission.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.user))
+		for id := range m.user {
+			ids = append(ids, id)
+		}
+		return ids
+	case userspermission.EdgePermission:
+		ids := make([]ent.Value, 0, len(m.permission))
+		for id := range m.permission {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *UsersPermissionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removeduser != nil {
+		edges = append(edges, userspermission.EdgeUser)
+	}
+	if m.removedpermission != nil {
+		edges = append(edges, userspermission.EdgePermission)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *UsersPermissionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case userspermission.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.removeduser))
+		for id := range m.removeduser {
+			ids = append(ids, id)
+		}
+		return ids
+	case userspermission.EdgePermission:
+		ids := make([]ent.Value, 0, len(m.removedpermission))
+		for id := range m.removedpermission {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *UsersPermissionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, userspermission.EdgeUser)
+	}
+	if m.clearedpermission {
+		edges = append(edges, userspermission.EdgePermission)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *UsersPermissionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case userspermission.EdgeUser:
+		return m.cleareduser
+	case userspermission.EdgePermission:
+		return m.clearedpermission
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *UsersPermissionMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown UsersPermission unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *UsersPermissionMutation) ResetEdge(name string) error {
+	switch name {
+	case userspermission.EdgeUser:
+		m.ResetUser()
+		return nil
+	case userspermission.EdgePermission:
+		m.ResetPermission()
+		return nil
+	}
+	return fmt.Errorf("unknown UsersPermission edge %s", name)
 }
