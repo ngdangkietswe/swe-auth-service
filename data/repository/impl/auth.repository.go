@@ -14,6 +14,17 @@ type authRepository struct {
 	entClient *ent.Client
 }
 
+// FindById is a function that finds a user by ID
+func (a authRepository) FindById(ctx context.Context, id string) (*ent.User, error) {
+	return a.entClient.User.Query().Where(user.ID(uuid.MustParse(id))).First(ctx)
+}
+
+// ExistsById is a function that checks if a user exists by ID
+func (a authRepository) ExistsById(ctx context.Context, id string) (bool, error) {
+	exists, err := a.entClient.User.Query().Where(user.ID(uuid.MustParse(id))).Exist(ctx)
+	return exists, err
+}
+
 // EnableOrDisable2FA is a function that enables or disables 2FA for a user
 func (a authRepository) EnableOrDisable2FA(ctx context.Context, userId string, enable bool) (*ent.User, error) {
 	query := a.entClient.User.UpdateOneID(uuid.MustParse(userId)).SetEnable2fa(enable)

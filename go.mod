@@ -7,13 +7,13 @@ toolchain go1.23.3
 require entgo.io/ent v0.14.1
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
-	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20241203041508-f749df2d96b7
-	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241130074735-66eb2599def8
+	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20241228081125-bb5d18bfb3ca
+	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241228025738-656cc0cc9fd7
 	github.com/redis/go-redis/v9 v9.7.0
+	github.com/samber/lo v1.47.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/xlzd/gotp v0.1.0
@@ -29,6 +29,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.23.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

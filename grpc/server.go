@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ngdangkietswe/swe-auth-service/data/datasource"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/server/auth"
+	"github.com/ngdangkietswe/swe-auth-service/grpc/server/permission"
 	"github.com/ngdangkietswe/swe-go-common-shared/config"
 	"github.com/ngdangkietswe/swe-go-common-shared/middleware"
 	"google.golang.org/grpc"
@@ -22,9 +23,11 @@ func NewGrpcServer() {
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(middleware.AuthMiddleware),
 	)
-	auth.NewGrpcHandler(entClient).RegisterGrpcServer(grpcServer)
 
-	if err := grpcServer.Serve(lis); err != nil {
+	auth.NewGrpcHandler(entClient).RegisterGrpcServer(grpcServer)
+	permission.NewGrpcHandler(entClient).RegisterGrpcServer(grpcServer)
+
+	if err = grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
