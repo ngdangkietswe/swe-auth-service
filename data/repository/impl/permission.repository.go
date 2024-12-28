@@ -60,7 +60,7 @@ func (p permissionRepository) FindPermissionById(ctx context.Context, id string)
 }
 
 // ListPermissions is a function that lists permissions.
-func (p permissionRepository) ListPermissions(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, error) {
+func (p permissionRepository) ListPermissions(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, int64, error) {
 	entPs := p.entClient.Permission.Query()
 
 	if req.ActionId != nil {
@@ -73,7 +73,9 @@ func (p permissionRepository) ListPermissions(ctx context.Context, req *auth.Lis
 		entPs = entPs.Where(permission.DescriptionContainsFold(*req.Search))
 	}
 
-	return entPs.Limit(int(pageable.Size)).Offset(int(utils.AsOffset(pageable.Page, pageable.Size))).All(ctx)
+	count, err := entPs.Count(ctx)
+	data, err := entPs.Limit(int(pageable.Size)).Offset(int(utils.AsOffset(pageable.Page, pageable.Size))).All(ctx)
+	return data, int64(count), err
 }
 
 func (p permissionRepository) AssignPermissions(ctx context.Context, req *auth.AssignPermissionsReq) error {

@@ -69,7 +69,7 @@ func (p permissionSvc) ListPermissions(ctx context.Context, req *auth.ListPermis
 	}
 
 	normalizePageable := utils.NormalizePageable(req.Pageable)
-	permissions, err := p.permissionRepo.ListPermissions(ctx, req, normalizePageable)
+	permissions, count, err := p.permissionRepo.ListPermissions(ctx, req, normalizePageable)
 	if err != nil {
 		log.Printf("error listing permissions: %v", err)
 		return nil, err
@@ -105,7 +105,7 @@ func (p permissionSvc) ListPermissions(ctx context.Context, req *auth.ListPermis
 		Resp: &auth.ListPermissionsResp_Data_{
 			Data: &auth.ListPermissionsResp_Data{
 				Permissions:  mapper.AsListPermission(permissions, actionMap, resourceMap),
-				PageMetaData: utils.AsPageMetaData(normalizePageable, int64(len(permissions))),
+				PageMetaData: utils.AsPageMetaData(normalizePageable, count),
 			},
 		},
 	}, nil
@@ -116,6 +116,13 @@ func (p permissionSvc) AssignPermissions(ctx context.Context, req *auth.AssignPe
 	err := p.permissionValidator.ValidateAssignPermissions(ctx, req)
 	if err != nil {
 		log.Printf("error validating assign permissions: %v", err)
+		return nil, err
+	}
+
+	// Delete old permissions of the user
+	err = p.userPermissionsRepo.DeleteAllByUserId(ctx, req.UserId)
+	if err != nil {
+		log.Printf("error deleting user permissions: %v", err)
 		return nil, err
 	}
 

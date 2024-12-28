@@ -4,11 +4,18 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 )
 
 type UserPermissionsRepository struct {
 	entClient *ent.Client
+}
+
+// DeleteAllByUserId is a function that deletes all user permissions by user id.
+func (u UserPermissionsRepository) DeleteAllByUserId(ctx context.Context, userId string) error {
+	_, err := u.entClient.UsersPermission.Delete().Where(userspermission.UserIDEQ(uuid.MustParse(userId))).Exec(ctx)
+	return err
 }
 
 // CreateUserPermissions is a function that creates user permissions.

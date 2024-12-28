@@ -46,6 +46,7 @@ func AsPageMetaData(pageable *common.Pageable, total int64) *common.PageMetaData
 		resp.Next = false
 	} else {
 		totalPages := AsTotalPages(int32(total), pageable.Size)
+		resp.TotalPages = int64(totalPages)
 		resp.Page = pageable.Page + 1
 		resp.Size = pageable.Size
 		resp.Previous = pageable.Page > 0

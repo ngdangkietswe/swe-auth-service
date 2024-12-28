@@ -21,7 +21,7 @@ type (
 	IPermissionRepository interface {
 		UpsertPermission(ctx context.Context, permission *auth.UpsertPermissionReq) (*ent.Permission, error)
 		FindPermissionById(ctx context.Context, id string) (*ent.Permission, error)
-		ListPermissions(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, error)
+		ListPermissions(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, int64, error)
 		AssignPermissions(ctx context.Context, req *auth.AssignPermissionsReq) error
 		ExistsByActionAndResource(ctx context.Context, actionId string, resourceId string) (bool, error)
 		ExistsAllByIds(ctx context.Context, ids []string) (bool, error)
@@ -30,6 +30,7 @@ type (
 
 	IUserPermissionsRepository interface {
 		CreateUserPermissions(ctx context.Context, userId string, permissionIds []string) error
+		DeleteAllByUserId(ctx context.Context, userId string) error
 	}
 
 	IActionRepository interface {
