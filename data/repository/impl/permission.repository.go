@@ -16,6 +16,11 @@ type permissionRepository struct {
 	entClient *ent.Client
 }
 
+// FindAllByIds is a function that finds all permissions by IDs.
+func (p permissionRepository) FindAllByIds(ctx context.Context, ids []uuid.UUID) ([]*ent.Permission, error) {
+	return p.entClient.Permission.Query().Where(permission.IDIn(ids...)).All(ctx)
+}
+
 // ExistsById is a function that checks if a permission exists by ID.
 func (p permissionRepository) ExistsById(ctx context.Context, id string) (bool, error) {
 	exists, err := p.entClient.Permission.Query().Where(permission.ID(uuid.MustParse(id))).Exist(ctx)

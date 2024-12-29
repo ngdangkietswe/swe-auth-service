@@ -9,6 +9,7 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/permission"
+	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
 	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
@@ -23,6 +24,57 @@ type permissionSvc struct {
 	userPermissionsRepo repository.IUserPermissionsRepository
 	authRepo            repository.IAuthRepository
 	permissionValidator validator.IPermissionValidator
+}
+
+// PermissionOfUser is a function that gets permissions of a user.
+func (p permissionSvc) PermissionOfUser(ctx context.Context, req *common.IdReq) (*auth.PermissionOfUserResp, error) {
+	var userId string
+	if req.Id != "" {
+		userId = req.Id
+	} else {
+		userId = grpcutil.GetGrpcPrincipal(ctx).UserId
+	}
+
+	userUid, err := uuid.Parse(userId)
+	if err != nil {
+		log.Printf("error parsing user id: %v", err)
+		return nil, err
+	}
+
+	userPermissions, err := p.userPermissionsRepo.FindAllByUserId(ctx, userUid)
+	if err != nil {
+		log.Printf("error finding user permissions: %v", err)
+		return nil, err
+	}
+
+	permissionIds := lo.Map(userPermissions, func(userPermission *ent.UsersPermission, _ int) uuid.UUID {
+		return userPermission.PermissionID
+	})
+
+	permissions, err := p.permissionRepo.FindAllByIds(ctx, lo.Uniq(permissionIds))
+	if err != nil {
+		log.Printf("error finding permissions by ids: %v", err)
+		return nil, err
+	}
+
+	actionMap, err := p.getActionMap(ctx, permissions)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceMap, err := p.getResourceMap(ctx, permissions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &auth.PermissionOfUserResp{
+		Success: true,
+		Resp: &auth.PermissionOfUserResp_Data_{
+			Data: &auth.PermissionOfUserResp_Data{
+				Permissions: mapper.AsListPermission(permissions, actionMap, resourceMap),
+			},
+		},
+	}, nil
 }
 
 // UpsertPermission is a function that upserts a permission.
@@ -75,30 +127,15 @@ func (p permissionSvc) ListPermissions(ctx context.Context, req *auth.ListPermis
 		return nil, err
 	}
 
-	actionIds := lo.Map(permissions, func(permission *ent.Permission, _ int) uuid.UUID {
-		return permission.ActionID
-	})
-	resourceIds := lo.Map(permissions, func(permission *ent.Permission, _ int) uuid.UUID {
-		return permission.ResourceID
-	})
-
-	actions, err := p.actionRepo.FindAllByIds(ctx, lo.Uniq(actionIds))
+	actionMap, err := p.getActionMap(ctx, permissions)
 	if err != nil {
-		log.Printf("error finding actions by ids: %v", err)
 		return nil, err
 	}
-	actionMap := commonutil.Convert2Map(actions, func(action *ent.Action) uuid.UUID {
-		return action.ID
-	})
 
-	resources, err := p.resourceRepo.FindAllByIds(ctx, lo.Uniq(resourceIds))
+	resourceMap, err := p.getResourceMap(ctx, permissions)
 	if err != nil {
-		log.Printf("error finding resources by ids: %v", err)
 		return nil, err
 	}
-	resourceMap := commonutil.Convert2Map(resources, func(resource *ent.Resource) uuid.UUID {
-		return resource.ID
-	})
 
 	return &auth.ListPermissionsResp{
 		Success: true,
@@ -109,6 +146,36 @@ func (p permissionSvc) ListPermissions(ctx context.Context, req *auth.ListPermis
 			},
 		},
 	}, nil
+}
+
+// getActionMap is a function that gets an action map.
+func (p permissionSvc) getActionMap(ctx context.Context, permissions []*ent.Permission) (map[uuid.UUID]*ent.Action, error) {
+	actionIds := lo.Map(permissions, func(permission *ent.Permission, _ int) uuid.UUID {
+		return permission.ActionID
+	})
+	actions, err := p.actionRepo.FindAllByIds(ctx, lo.Uniq(actionIds))
+	if err != nil {
+		log.Printf("error finding actions by ids: %v", err)
+		return nil, err
+	}
+	return commonutil.Convert2Map(actions, func(action *ent.Action) uuid.UUID {
+		return action.ID
+	}), nil
+}
+
+// getResourceMap is a function that gets a resource map.
+func (p permissionSvc) getResourceMap(ctx context.Context, permissions []*ent.Permission) (map[uuid.UUID]*ent.Resource, error) {
+	resourceIds := lo.Map(permissions, func(permission *ent.Permission, _ int) uuid.UUID {
+		return permission.ResourceID
+	})
+	resources, err := p.resourceRepo.FindAllByIds(ctx, lo.Uniq(resourceIds))
+	if err != nil {
+		log.Printf("error finding resources by ids: %v", err)
+		return nil, err
+	}
+	return commonutil.Convert2Map(resources, func(resource *ent.Resource) uuid.UUID {
+		return resource.ID
+	}), nil
 }
 
 // AssignPermissions is a function that assigns permissions to a user.

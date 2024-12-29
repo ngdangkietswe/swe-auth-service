@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
 	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20241228081125-bb5d18bfb3ca
-	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241228025738-656cc0cc9fd7
+	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241229084417-4ce91a6d9faa
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/samber/lo v1.47.0
 	github.com/segmentio/kafka-go v0.4.47

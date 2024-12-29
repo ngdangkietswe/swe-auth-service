@@ -12,6 +12,11 @@ type UserPermissionsRepository struct {
 	entClient *ent.Client
 }
 
+// FindAllByUserId is a function that finds all user permissions by user id.
+func (u UserPermissionsRepository) FindAllByUserId(ctx context.Context, userId uuid.UUID) ([]*ent.UsersPermission, error) {
+	return u.entClient.UsersPermission.Query().Where(userspermission.UserIDEQ(userId)).All(ctx)
+}
+
 // DeleteAllByUserId is a function that deletes all user permissions by user id.
 func (u UserPermissionsRepository) DeleteAllByUserId(ctx context.Context, userId string) error {
 	_, err := u.entClient.UsersPermission.Delete().Where(userspermission.UserIDEQ(uuid.MustParse(userId))).Exec(ctx)

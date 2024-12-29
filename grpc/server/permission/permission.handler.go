@@ -31,4 +31,5 @@ func (h *GrpcHandler) RegisterGrpcServer(server *grpc.Server) {
 	permissionSvc := service.NewPermissionGrpcService(actionRepo, resourceRepo, permissionRepo, userPermissionsRepo, authRepo, permissionValidator)
 
 	auth.RegisterPermissionServiceServer(server, NewGrpcServer(permissionSvc))
+	auth.RegisterPermissionInternalServiceServer(server, NewGrpcInternalServer(permissionSvc))
 }
