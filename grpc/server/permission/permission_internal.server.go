@@ -18,6 +18,6 @@ func NewGrpcInternalServer(permissionSvc permissionsvc.IPermissionService) *Grpc
 	}
 }
 
-func (s *GrpcServer) PermissionOfUser(ctx context.Context, req *common.IdReq) (*auth.PermissionOfUserResp, error) {
+func (s *GrpcInternalServer) PermissionOfUser(ctx context.Context, req *common.IdReq) (*auth.PermissionOfUserResp, error) {
 	return s.permissionSvc.PermissionOfUser(ctx, req)
 }
