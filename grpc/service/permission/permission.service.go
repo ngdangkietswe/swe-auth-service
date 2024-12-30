@@ -3,12 +3,15 @@ package permission
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/permission"
+	"github.com/ngdangkietswe/swe-go-common-shared/cache"
+	"github.com/ngdangkietswe/swe-go-common-shared/constants"
 	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
 	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
@@ -23,7 +26,10 @@ type permissionSvc struct {
 	permissionRepo      repository.IPermissionRepository
 	userPermissionsRepo repository.IUserPermissionsRepository
 	authRepo            repository.IAuthRepository
+
 	permissionValidator validator.IPermissionValidator
+
+	redisCache *cache.RedisCache
 }
 
 // PermissionOfUser is a function that gets permissions of a user.
@@ -180,22 +186,27 @@ func (p permissionSvc) getResourceMap(ctx context.Context, permissions []*ent.Pe
 
 // AssignPermissions is a function that assigns permissions to a user.
 func (p permissionSvc) AssignPermissions(ctx context.Context, req *auth.AssignPermissionsReq) (*common.EmptyResp, error) {
-	err := p.permissionValidator.ValidateAssignPermissions(ctx, req)
-	if err != nil {
+	if err := p.permissionValidator.ValidateAssignPermissions(ctx, req); err != nil {
 		log.Printf("error validating assign permissions: %v", err)
 		return nil, err
 	}
 
 	// Delete old permissions of the user
-	err = p.userPermissionsRepo.DeleteAllByUserId(ctx, req.UserId)
-	if err != nil {
+	if err := p.userPermissionsRepo.DeleteAllByUserId(ctx, req.UserId); err != nil {
 		log.Printf("error deleting user permissions: %v", err)
 		return nil, err
 	}
 
-	err = p.userPermissionsRepo.CreateUserPermissions(ctx, req.UserId, req.PermissionIds)
-	if err != nil {
+	if err := p.userPermissionsRepo.CreateUserPermissions(ctx, req.UserId, req.PermissionIds); err != nil {
 		log.Printf("error creating user permissions: %v", err)
+		return nil, err
+	}
+
+	// Delete user permission cache after assigning permissions
+	log.Printf("deleting user permission cache after assigning permissions for user %s", req.UserId)
+	cacheKey := fmt.Sprintf("%s_%s", constants.UserPermissionCacheKeyPrefix, req.UserId)
+	if err := p.redisCache.Delete(cacheKey); err != nil {
+		log.Printf("error deleting user permission cache: %v", err)
 		return nil, err
 	}
 
@@ -210,12 +221,14 @@ func NewPermissionGrpcService(
 	permissionRepo repository.IPermissionRepository,
 	userPermissionsRepo repository.IUserPermissionsRepository,
 	authRepo repository.IAuthRepository,
-	permissionValidator validator.IPermissionValidator) IPermissionService {
+	permissionValidator validator.IPermissionValidator,
+	redisCache *cache.RedisCache) IPermissionService {
 	return &permissionSvc{
 		permissionRepo: permissionRepo,
 		actionRepo:     actionRepo,
 		resourceRepo:   resourceRepo,
 		authRepo:       authRepo, userPermissionsRepo: userPermissionsRepo,
 		permissionValidator: permissionValidator,
+		redisCache:          redisCache,
 	}
 }
