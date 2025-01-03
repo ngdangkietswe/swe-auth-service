@@ -10,8 +10,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
-	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20241230065349-b45a7662e0d5
-	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20241229170805-4dafc661568b
+	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20250103032339-76554c27d2e8
+	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20250103074104-baf9f74634e2
 	github.com/samber/lo v1.47.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e

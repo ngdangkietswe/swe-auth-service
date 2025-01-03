@@ -10,6 +10,7 @@ import (
 
 type (
 	IAuthRepository interface {
+		ChangePassword(ctx context.Context, id, newPassword string) (*ent.User, error)
 		UpsertUser(ctx context.Context, user *auth.User) (*ent.User, error)
 		FindById(ctx context.Context, id string) (*ent.User, error)
 		FindByUsername(ctx context.Context, username string) (*ent.User, error)

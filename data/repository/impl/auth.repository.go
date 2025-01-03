@@ -14,6 +14,17 @@ type authRepository struct {
 	entClient *ent.Client
 }
 
+// ChangePassword is a function that changes the password of a user
+func (a authRepository) ChangePassword(ctx context.Context, id, newPassword string) (*ent.User, error) {
+	hashNewPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return nil, err
+	}
+	return a.entClient.User.UpdateOneID(uuid.MustParse(id)).
+		SetPassword(hashNewPassword).
+		Save(ctx)
+}
+
 // FindById is a function that finds a user by ID
 func (a authRepository) FindById(ctx context.Context, id string) (*ent.User, error) {
 	return a.entClient.User.Query().Where(user.ID(uuid.MustParse(id))).First(ctx)

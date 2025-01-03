@@ -25,6 +25,31 @@ type authService struct {
 	authValidator  validator.IAuthValidator
 }
 
+// ChangePassword is a function that changes the password of a user.
+func (a authService) ChangePassword(ctx context.Context, req *auth.ChangePasswordReq) (*common.EmptyResp, error) {
+	principal := grpcutil.GetGrpcPrincipal(ctx)
+	entUser, err := a.authRepository.FindById(ctx, principal.UserId)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Validate request and check if old password is correct
+	err = a.authValidator.ChangePassword(req, entUser.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save new password
+	_, err = a.authRepository.ChangePassword(ctx, principal.UserId, req.NewPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.EmptyResp{
+		Success: true,
+	}, nil
+}
+
 // EnableOrDisable2FA is a function that enables or disables 2FA for a user.
 func (a authService) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrDisable2FAReq) (*auth.EnableOrDisable2FAResp, error) {
 	principal := grpcutil.GetGrpcPrincipal(ctx)

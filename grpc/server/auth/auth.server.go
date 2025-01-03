@@ -32,3 +32,8 @@ func (s *GrpcServer) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 func (s *GrpcServer) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrDisable2FAReq) (*auth.EnableOrDisable2FAResp, error) {
 	return s.authService.EnableOrDisable2FA(ctx, req)
 }
+
+// ChangePassword is a function that implements the ChangePassword method of the AuthServiceServer interface
+func (s *GrpcServer) ChangePassword(ctx context.Context, req *auth.ChangePasswordReq) (*common.EmptyResp, error) {
+	return s.authService.ChangePassword(ctx, req)
+}

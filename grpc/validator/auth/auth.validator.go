@@ -4,11 +4,32 @@ import (
 	"context"
 	"errors"
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 )
 
 type authValidator struct {
 	authRepository repository.IAuthRepository
+}
+
+// ChangePassword is a function that validates the change password request
+func (a authValidator) ChangePassword(req *auth.ChangePasswordReq, hashCurrentPassword string) error {
+	if req.OldPassword == "" {
+		return errors.New("old password is required")
+	} else if req.NewPassword == "" {
+		return errors.New("new password is required")
+	} else if req.ConfirmPassword == "" {
+		return errors.New("confirm password is required")
+	} else if req.NewPassword != req.ConfirmPassword {
+		return errors.New("new password and confirm password are not matched")
+	}
+
+	err := utils.CheckPasswordHash(hashCurrentPassword, req.OldPassword)
+	if err != nil {
+		return errors.New("old password is incorrect")
+	}
+
+	return nil
 }
 
 // RegisterUser is a function that validates the user registration request
