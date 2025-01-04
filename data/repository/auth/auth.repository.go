@@ -1,11 +1,10 @@
-package impl
+package auth
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 )
@@ -85,7 +84,7 @@ func (a authRepository) UpsertUser(ctx context.Context, user *auth.User) (*ent.U
 	return entUser, err
 }
 
-func NewAuthRepository(entClient *ent.Client) repository.IAuthRepository {
+func NewAuthRepository(entClient *ent.Client) IAuthRepository {
 	return &authRepository{
 		entClient: entClient,
 	}

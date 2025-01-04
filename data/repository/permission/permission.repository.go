@@ -1,11 +1,10 @@
-package impl
+package permission
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	commonutils "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
@@ -88,7 +87,7 @@ func (p permissionRepository) AssignPermissions(ctx context.Context, req *auth.A
 	panic("implement me")
 }
 
-func NewPermissionRepository(entClient *ent.Client) repository.IPermissionRepository {
+func NewPermissionRepository(entClient *ent.Client) IPermissionRepository {
 	return &permissionRepository{
 		entClient: entClient,
 	}

@@ -8,6 +8,7 @@ require entgo.io/ent v0.14.1
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/google/wire v0.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
 	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20250103032339-76554c27d2e8

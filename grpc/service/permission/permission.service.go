@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/action"
+	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/resource"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/user_permissions"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/utils"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/permission"
@@ -21,11 +25,11 @@ import (
 )
 
 type permissionSvc struct {
-	actionRepo          repository.IActionRepository
-	resourceRepo        repository.IResourceRepository
-	permissionRepo      repository.IPermissionRepository
-	userPermissionsRepo repository.IUserPermissionsRepository
-	authRepo            repository.IAuthRepository
+	actionRepo          action.IActionRepository
+	resourceRepo        resource.IResourceRepository
+	permissionRepo      permission.IPermissionRepository
+	userPermissionsRepo user_permissions.IUserPermissionsRepository
+	authRepo            authrepo.IAuthRepository
 
 	permissionValidator validator.IPermissionValidator
 
@@ -216,11 +220,11 @@ func (p permissionSvc) AssignPermissions(ctx context.Context, req *auth.AssignPe
 }
 
 func NewPermissionGrpcService(
-	actionRepo repository.IActionRepository,
-	resourceRepo repository.IResourceRepository,
-	permissionRepo repository.IPermissionRepository,
-	userPermissionsRepo repository.IUserPermissionsRepository,
-	authRepo repository.IAuthRepository,
+	actionRepo action.IActionRepository,
+	resourceRepo resource.IResourceRepository,
+	permissionRepo permission.IPermissionRepository,
+	userPermissionsRepo user_permissions.IUserPermissionsRepository,
+	authRepo authrepo.IAuthRepository,
 	permissionValidator validator.IPermissionValidator,
 	redisCache *cache.RedisCache) IPermissionService {
 	return &permissionSvc{

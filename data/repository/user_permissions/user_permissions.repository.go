@@ -1,11 +1,10 @@
-package impl
+package user_permissions
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 )
 
 type UserPermissionsRepository struct {
@@ -35,7 +34,7 @@ func (u UserPermissionsRepository) CreateUserPermissions(ctx context.Context, us
 	return err
 }
 
-func NewUserPermissionsRepository(entClient *ent.Client) repository.IUserPermissionsRepository {
+func NewUserPermissionsRepository(entClient *ent.Client) IUserPermissionsRepository {
 	return &UserPermissionsRepository{
 		entClient: entClient,
 	}

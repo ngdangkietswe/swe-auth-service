@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
@@ -21,7 +21,7 @@ import (
 )
 
 type authService struct {
-	authRepository repository.IAuthRepository
+	authRepository authrepo.IAuthRepository
 	authValidator  validator.IAuthValidator
 }
 
@@ -171,7 +171,7 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 }
 
 func NewAuthGrpcService(
-	authRepository repository.IAuthRepository,
+	authRepository authrepo.IAuthRepository,
 	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
 		authRepository: authRepository,

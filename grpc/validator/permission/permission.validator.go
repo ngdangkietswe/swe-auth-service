@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/action"
+	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
+	permissionrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository/resource"
 	commonutils "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 )
 
 type permissionValidator struct {
-	actionRepo     repository.IActionRepository
-	resourceRepo   repository.IResourceRepository
-	permissionRepo repository.IPermissionRepository
-	authRepo       repository.IAuthRepository
+	actionRepo     action.IActionRepository
+	resourceRepo   resource.IResourceRepository
+	permissionRepo permissionrepo.IPermissionRepository
+	authRepo       authrepo.IAuthRepository
 }
 
 // ValidateListPermissions is a function that validates the ListPermissionsReq.
@@ -121,10 +124,10 @@ func (p permissionValidator) ValidateAssignPermissions(ctx context.Context, req 
 }
 
 func NewPermissionValidator(
-	actionRepo repository.IActionRepository,
-	resourceRepo repository.IResourceRepository,
-	permissionRepo repository.IPermissionRepository,
-	authRepo repository.IAuthRepository) IPermissionValidator {
+	actionRepo action.IActionRepository,
+	resourceRepo resource.IResourceRepository,
+	permissionRepo permissionrepo.IPermissionRepository,
+	authRepo authrepo.IAuthRepository) IPermissionValidator {
 	return &permissionValidator{
 		actionRepo:     actionRepo,
 		resourceRepo:   resourceRepo,

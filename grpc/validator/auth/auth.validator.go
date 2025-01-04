@@ -3,13 +3,13 @@ package auth
 import (
 	"context"
 	"errors"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
+	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 )
 
 type authValidator struct {
-	authRepository repository.IAuthRepository
+	authRepository authrepo.IAuthRepository
 }
 
 // ChangePassword is a function that validates the change password request
@@ -52,7 +52,7 @@ func (a authValidator) RegisterUser(ctx context.Context, req *auth.User) error {
 	return nil
 }
 
-func NewAuthValidator(authRepository repository.IAuthRepository) IAuthValidator {
+func NewAuthValidator(authRepository authrepo.IAuthRepository) IAuthValidator {
 	return authValidator{
 		authRepository: authRepository,
 	}

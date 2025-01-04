@@ -1,11 +1,10 @@
-package impl
+package action
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/action"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 )
 
 type actionRepository struct {
@@ -22,6 +21,6 @@ func (a actionRepository) ExistsById(ctx context.Context, id string) (bool, erro
 	return a.entClient.Action.Query().Where(action.IDEQ(uuid.MustParse(id))).Exist(ctx)
 }
 
-func NewActionRepository(entClient *ent.Client) repository.IActionRepository {
+func NewActionRepository(entClient *ent.Client) IActionRepository {
 	return &actionRepository{entClient: entClient}
 }

@@ -1,11 +1,10 @@
-package impl
+package resource
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/resource"
-	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 )
 
 type resourceRepository struct {
@@ -22,6 +21,6 @@ func (r resourceRepository) ExistsById(ctx context.Context, id string) (bool, er
 	return r.entClient.Resource.Query().Where(resource.IDEQ(uuid.MustParse(id))).Exist(ctx)
 }
 
-func NewResourceRepository(entClient *ent.Client) repository.IResourceRepository {
+func NewResourceRepository(entClient *ent.Client) IResourceRepository {
 	return &resourceRepository{entClient: entClient}
 }
