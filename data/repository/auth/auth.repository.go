@@ -13,6 +13,16 @@ type authRepository struct {
 	entClient *ent.Client
 }
 
+// FindByEmail is a function that finds a user by email
+func (a authRepository) FindByEmail(ctx context.Context, email string) (*ent.User, error) {
+	return a.entClient.User.Query().Where(user.EmailEQ(email)).First(ctx)
+}
+
+// ExistsByEmail is a function that checks if a user exists by email
+func (a authRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	return a.entClient.User.Query().Where(user.EmailEQ(email)).Exist(ctx)
+}
+
 // ChangePassword is a function that changes the password of a user
 func (a authRepository) ChangePassword(ctx context.Context, id, newPassword string) (*ent.User, error) {
 	hashNewPassword, err := utils.HashPassword(newPassword)

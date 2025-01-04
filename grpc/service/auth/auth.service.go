@@ -1,18 +1,20 @@
-package auth
+package grpcserviceauth
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
-	"github.com/ngdangkietswe/swe-auth-service/kafka/constant"
-	"github.com/ngdangkietswe/swe-auth-service/kafka/model"
 	"github.com/ngdangkietswe/swe-auth-service/kafka/producer"
 	"github.com/ngdangkietswe/swe-auth-service/utils"
+	"github.com/ngdangkietswe/swe-go-common-shared/cache"
 	"github.com/ngdangkietswe/swe-go-common-shared/config"
-	"github.com/ngdangkietswe/swe-go-common-shared/grpc/domain"
+	"github.com/ngdangkietswe/swe-go-common-shared/constants"
+	"github.com/ngdangkietswe/swe-go-common-shared/domain"
+	grpcdomain "github.com/ngdangkietswe/swe-go-common-shared/grpc/domain"
 	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
 	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
@@ -21,8 +23,85 @@ import (
 )
 
 type authService struct {
+	redisCache     *cache.RedisCache
 	authRepository authrepo.IAuthRepository
 	authValidator  validator.IAuthValidator
+}
+
+// ForgotPassword is a function that sends an email to a user to reset the password.
+func (a authService) ForgotPassword(ctx context.Context, req *auth.ForgotPasswordReq) (*common.EmptyResp, error) {
+	exists, err := a.authRepository.ExistsByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, errors.New("user not found")
+	}
+
+	token, err := commonutil.GenerateSecureToken()
+	if err != nil {
+		return nil, err
+	}
+
+	resetPassword := domain.ResetPassword{
+		Email: req.Email,
+		Token: token,
+	}
+
+	// Cache token in redis with expiration time in 30 minutes
+	cacheKey := fmt.Sprintf("%s_%s", constants.ResetPasswordCacheKeyPrefix, token)
+	err = a.redisCache.Set(cacheKey, resetPassword, time.Minute*30)
+	if err != nil {
+		return nil, err
+	}
+
+	// Produce message to kafka. This message will be consumed by swe notification service
+	kProducer := producer.NewKProducer(constants.TopicResetPassword)
+	go func() {
+		kProducer.Produce(token, resetPassword)
+	}()
+
+	return &common.EmptyResp{
+		Success: true,
+	}, nil
+}
+
+// ResetPassword is a function that resets the password of a user.
+func (a authService) ResetPassword(ctx context.Context, req *auth.ResetPasswordReq) (*common.EmptyResp, error) {
+	var resetPassword *domain.ResetPassword
+
+	// Validate request
+	err := a.authValidator.ResetPassword(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if token exists in redis
+	cacheKey := fmt.Sprintf("%s_%s", constants.ResetPasswordCacheKeyPrefix, req.Token)
+	err = a.redisCache.Get(cacheKey, &resetPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	entUser, err := a.authRepository.FindByEmail(ctx, resetPassword.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update password
+	entUser, err = a.authRepository.ChangePassword(ctx, entUser.ID.String(), req.NewPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete token in redis
+	err = a.redisCache.Delete(cacheKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.EmptyResp{
+		Success: true,
+	}, nil
 }
 
 // ChangePassword is a function that changes the password of a user.
@@ -90,9 +169,9 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	}
 
 	// Produce message to kafka. This message will be consumed by swe notification service
-	kProducer := producer.NewKProducer(constant.TopicRegisterUser)
+	kProducer := producer.NewKProducer(constants.TopicRegisterUser)
 	go func() {
-		registerUser := model.RegisterUser{
+		registerUser := domain.RegisterUser{
 			Username:  req.Username,
 			Email:     req.Email,
 			CreatedAt: time.Now().Format(time.RFC3339),
@@ -137,7 +216,7 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 		}
 	}
 
-	grpcUser := &domain.GrpcUser{
+	grpcUser := &grpcdomain.GrpcUser{
 		Id:       entUser.ID.String(),
 		Username: entUser.Username,
 		Email:    entUser.Email,
@@ -171,9 +250,11 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 }
 
 func NewAuthGrpcService(
+	redisCache *cache.RedisCache,
 	authRepository authrepo.IAuthRepository,
 	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
+		redisCache:     redisCache,
 		authRepository: authRepository,
 		authValidator:  authValidator,
 	}

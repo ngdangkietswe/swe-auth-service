@@ -3,7 +3,6 @@ package datasource
 import (
 	"context"
 	"fmt"
-	"github.com/google/wire"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
 	"github.com/ngdangkietswe/swe-go-common-shared/config"
 	"log"
@@ -33,12 +32,4 @@ func NewEntClient() *ent.Client {
 	}
 
 	return client
-}
-
-// ProvideEntClient is a function to provide an ent client
-func ProvideEntClient() (e *ent.Client) {
-	wire.Build(
-		NewEntClient,
-	)
-	return
 }

@@ -1,4 +1,4 @@
-package permission
+package server
 
 import (
 	"context"
@@ -7,17 +7,17 @@ import (
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
 )
 
-type GrpcInternalServer struct {
+type PermissionInternalGrpcServer struct {
 	auth.UnimplementedPermissionInternalServiceServer
 	permissionSvc permissionsvc.IPermissionService
 }
 
-func NewGrpcInternalServer(permissionSvc permissionsvc.IPermissionService) *GrpcInternalServer {
-	return &GrpcInternalServer{
+func NewPermissionInternalGrpcServer(permissionSvc permissionsvc.IPermissionService) *PermissionInternalGrpcServer {
+	return &PermissionInternalGrpcServer{
 		permissionSvc: permissionSvc,
 	}
 }
 
-func (s *GrpcInternalServer) PermissionOfUser(ctx context.Context, req *common.IdReq) (*auth.PermissionOfUserResp, error) {
+func (s *PermissionInternalGrpcServer) PermissionOfUser(ctx context.Context, req *common.IdReq) (*auth.PermissionOfUserResp, error) {
 	return s.permissionSvc.PermissionOfUser(ctx, req)
 }

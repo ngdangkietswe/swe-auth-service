@@ -12,6 +12,20 @@ type authValidator struct {
 	authRepository authrepo.IAuthRepository
 }
 
+func (a authValidator) ResetPassword(req *auth.ResetPasswordReq) error {
+	if req.Token == "" {
+		return errors.New("token is required")
+	} else if req.NewPassword == "" {
+		return errors.New("new password is required")
+	} else if req.ConfirmPassword == "" {
+		return errors.New("confirm password is required")
+	} else if req.NewPassword != req.ConfirmPassword {
+		return errors.New("new password and confirm password are not matched")
+	}
+
+	return nil
+}
+
 // ChangePassword is a function that validates the change password request
 func (a authValidator) ChangePassword(req *auth.ChangePasswordReq, hashCurrentPassword string) error {
 	if req.OldPassword == "" {
