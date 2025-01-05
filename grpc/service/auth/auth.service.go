@@ -24,6 +24,7 @@ import (
 
 type authService struct {
 	redisCache     *cache.RedisCache
+	kafkaProducer  *producer.KProducer
 	authRepository authrepo.IAuthRepository
 	authValidator  validator.IAuthValidator
 }
@@ -55,9 +56,8 @@ func (a authService) ForgotPassword(ctx context.Context, req *auth.ForgotPasswor
 	}
 
 	// Produce message to kafka. This message will be consumed by swe notification service
-	kProducer := producer.NewKProducer(constants.TopicResetPassword)
 	go func() {
-		kProducer.Produce(token, resetPassword)
+		a.kafkaProducer.Produce(token, constants.TopicResetPassword, resetPassword)
 	}()
 
 	return &common.EmptyResp{
@@ -169,14 +169,13 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	}
 
 	// Produce message to kafka. This message will be consumed by swe notification service
-	kProducer := producer.NewKProducer(constants.TopicRegisterUser)
 	go func() {
 		registerUser := domain.RegisterUser{
 			Username:  req.Username,
 			Email:     req.Email,
 			CreatedAt: time.Now().Format(time.RFC3339),
 		}
-		kProducer.Produce(entUser.ID.String(), registerUser)
+		a.kafkaProducer.Produce(entUser.ID.String(), constants.TopicRegisterUser, registerUser)
 	}()
 
 	return &common.UpsertResp{
@@ -251,10 +250,12 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 
 func NewAuthGrpcService(
 	redisCache *cache.RedisCache,
+	kafkaProducer *producer.KProducer,
 	authRepository authrepo.IAuthRepository,
 	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
 		redisCache:     redisCache,
+		kafkaProducer:  kafkaProducer,
 		authRepository: authRepository,
 		authValidator:  authValidator,
 	}
