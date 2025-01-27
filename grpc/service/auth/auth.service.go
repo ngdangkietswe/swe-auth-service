@@ -16,13 +16,16 @@ import (
 	"github.com/ngdangkietswe/swe-go-common-shared/domain"
 	grpcdomain "github.com/ngdangkietswe/swe-go-common-shared/grpc/domain"
 	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
+	"github.com/ngdangkietswe/swe-go-common-shared/logger"
 	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
+	"go.uber.org/zap"
 	"time"
 )
 
 type authService struct {
+	logger         *logger.Logger
 	redisCache     *cache.RedisCache
 	kafkaProducer  *producer.KProducer
 	authRepository authrepo.IAuthRepository
@@ -35,6 +38,7 @@ func (a authService) ForgotPassword(ctx context.Context, req *auth.ForgotPasswor
 	if err != nil {
 		return nil, err
 	} else if !exists {
+		a.logger.Error("User not found", zap.String("email", req.Email))
 		return nil, errors.New("user not found")
 	}
 
@@ -109,6 +113,7 @@ func (a authService) ChangePassword(ctx context.Context, req *auth.ChangePasswor
 	principal := grpcutil.GetGrpcPrincipal(ctx)
 	entUser, err := a.authRepository.FindById(ctx, principal.UserId)
 	if err != nil {
+		a.logger.Error("User not found", zap.String("userId", principal.UserId))
 		return nil, errors.New("user not found")
 	}
 
@@ -135,6 +140,7 @@ func (a authService) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrD
 	userId := principal.UserId
 	entUser, err := a.authRepository.EnableOrDisable2FA(ctx, userId, req.Enable)
 	if err != nil {
+		a.logger.Error("User not found", zap.String("userId", userId))
 		return nil, errors.New("user not found")
 	}
 
@@ -249,11 +255,13 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 }
 
 func NewAuthGrpcService(
+	logger *logger.Logger,
 	redisCache *cache.RedisCache,
 	kafkaProducer *producer.KProducer,
 	authRepository authrepo.IAuthRepository,
 	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
+		logger:         logger,
 		redisCache:     redisCache,
 		kafkaProducer:  kafkaProducer,
 		authRepository: authRepository,

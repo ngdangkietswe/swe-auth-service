@@ -10,13 +10,14 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mdp/qrterminal v1.0.1
-	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20250104071109-c5569ffd49a6
+	github.com/ngdangkietswe/swe-go-common-shared v0.0.0-20250127091543-13837bc9a014
 	github.com/ngdangkietswe/swe-protobuf-shared v0.0.0-20250104055443-6ef5e3824fe1
 	github.com/samber/lo v1.47.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/xlzd/gotp v0.1.0
 	go.uber.org/fx v1.23.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.29.0
 	google.golang.org/grpc v1.68.0
 )
@@ -51,8 +52,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	go.uber.org/dig v1.18.0 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.29.0 // indirect

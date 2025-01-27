@@ -5,6 +5,7 @@ import (
 	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	"github.com/ngdangkietswe/swe-auth-service/grpc"
 	"github.com/ngdangkietswe/swe-auth-service/kafka"
+	"github.com/ngdangkietswe/swe-auth-service/logger"
 	"github.com/ngdangkietswe/swe-go-common-shared/config"
 	"go.uber.org/fx"
 	grpcserver "google.golang.org/grpc"
@@ -13,6 +14,7 @@ import (
 func main() {
 	config.Init()
 	app := fx.New(
+		logger.Module,
 		repository.Module,
 		cache.Module,
 		kafka.Module,
