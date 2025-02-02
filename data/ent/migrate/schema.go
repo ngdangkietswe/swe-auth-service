@@ -24,15 +24,29 @@ var (
 	// PermissionColumns holds the columns for the "permission" table.
 	PermissionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
+		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "action_id", Type: field.TypeUUID},
 		{Name: "resource_id", Type: field.TypeUUID},
-		{Name: "description", Type: field.TypeString, Nullable: true},
 	}
 	// PermissionTable holds the schema information for the "permission" table.
 	PermissionTable = &schema.Table{
 		Name:       "permission",
 		Columns:    PermissionColumns,
 		PrimaryKey: []*schema.Column{PermissionColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "permission_action_permissions",
+				Columns:    []*schema.Column{PermissionColumns[2]},
+				RefColumns: []*schema.Column{ActionColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "permission_resource_permissions",
+				Columns:    []*schema.Column{PermissionColumns[3]},
+				RefColumns: []*schema.Column{ResourceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 	}
 	// ResourceColumns holds the columns for the "resource" table.
 	ResourceColumns = []*schema.Column{
@@ -66,112 +80,26 @@ var (
 	// UsersPermissionColumns holds the columns for the "users_permission" table.
 	UsersPermissionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "user_id", Type: field.TypeUUID},
 		{Name: "permission_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// UsersPermissionTable holds the schema information for the "users_permission" table.
 	UsersPermissionTable = &schema.Table{
 		Name:       "users_permission",
 		Columns:    UsersPermissionColumns,
 		PrimaryKey: []*schema.Column{UsersPermissionColumns[0]},
-	}
-	// ActionPermissionsColumns holds the columns for the "action_permissions" table.
-	ActionPermissionsColumns = []*schema.Column{
-		{Name: "action_id", Type: field.TypeUUID},
-		{Name: "permission_id", Type: field.TypeUUID},
-	}
-	// ActionPermissionsTable holds the schema information for the "action_permissions" table.
-	ActionPermissionsTable = &schema.Table{
-		Name:       "action_permissions",
-		Columns:    ActionPermissionsColumns,
-		PrimaryKey: []*schema.Column{ActionPermissionsColumns[0], ActionPermissionsColumns[1]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "action_permissions_action_id",
-				Columns:    []*schema.Column{ActionPermissionsColumns[0]},
-				RefColumns: []*schema.Column{ActionColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "action_permissions_permission_id",
-				Columns:    []*schema.Column{ActionPermissionsColumns[1]},
+				Symbol:     "users_permission_permission_users_permissions",
+				Columns:    []*schema.Column{UsersPermissionColumns[1]},
 				RefColumns: []*schema.Column{PermissionColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// PermissionUsersPermissionsColumns holds the columns for the "permission_users_permissions" table.
-	PermissionUsersPermissionsColumns = []*schema.Column{
-		{Name: "permission_id", Type: field.TypeUUID},
-		{Name: "users_permission_id", Type: field.TypeUUID},
-	}
-	// PermissionUsersPermissionsTable holds the schema information for the "permission_users_permissions" table.
-	PermissionUsersPermissionsTable = &schema.Table{
-		Name:       "permission_users_permissions",
-		Columns:    PermissionUsersPermissionsColumns,
-		PrimaryKey: []*schema.Column{PermissionUsersPermissionsColumns[0], PermissionUsersPermissionsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "permission_users_permissions_permission_id",
-				Columns:    []*schema.Column{PermissionUsersPermissionsColumns[0]},
-				RefColumns: []*schema.Column{PermissionColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "permission_users_permissions_users_permission_id",
-				Columns:    []*schema.Column{PermissionUsersPermissionsColumns[1]},
-				RefColumns: []*schema.Column{UsersPermissionColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// ResourcePermissionsColumns holds the columns for the "resource_permissions" table.
-	ResourcePermissionsColumns = []*schema.Column{
-		{Name: "resource_id", Type: field.TypeUUID},
-		{Name: "permission_id", Type: field.TypeUUID},
-	}
-	// ResourcePermissionsTable holds the schema information for the "resource_permissions" table.
-	ResourcePermissionsTable = &schema.Table{
-		Name:       "resource_permissions",
-		Columns:    ResourcePermissionsColumns,
-		PrimaryKey: []*schema.Column{ResourcePermissionsColumns[0], ResourcePermissionsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "resource_permissions_resource_id",
-				Columns:    []*schema.Column{ResourcePermissionsColumns[0]},
-				RefColumns: []*schema.Column{ResourceColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "resource_permissions_permission_id",
-				Columns:    []*schema.Column{ResourcePermissionsColumns[1]},
-				RefColumns: []*schema.Column{PermissionColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// UserUsersPermissionsColumns holds the columns for the "user_users_permissions" table.
-	UserUsersPermissionsColumns = []*schema.Column{
-		{Name: "user_id", Type: field.TypeUUID},
-		{Name: "users_permission_id", Type: field.TypeUUID},
-	}
-	// UserUsersPermissionsTable holds the schema information for the "user_users_permissions" table.
-	UserUsersPermissionsTable = &schema.Table{
-		Name:       "user_users_permissions",
-		Columns:    UserUsersPermissionsColumns,
-		PrimaryKey: []*schema.Column{UserUsersPermissionsColumns[0], UserUsersPermissionsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "user_users_permissions_user_id",
-				Columns:    []*schema.Column{UserUsersPermissionsColumns[0]},
+				Symbol:     "users_permission_users_users_permissions",
+				Columns:    []*schema.Column{UsersPermissionColumns[2]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "user_users_permissions_users_permission_id",
-				Columns:    []*schema.Column{UserUsersPermissionsColumns[1]},
-				RefColumns: []*schema.Column{UsersPermissionColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.NoAction,
 			},
 		},
 	}
@@ -182,10 +110,6 @@ var (
 		ResourceTable,
 		UsersTable,
 		UsersPermissionTable,
-		ActionPermissionsTable,
-		PermissionUsersPermissionsTable,
-		ResourcePermissionsTable,
-		UserUsersPermissionsTable,
 	}
 )
 
@@ -193,6 +117,8 @@ func init() {
 	ActionTable.Annotation = &entsql.Annotation{
 		Table: "action",
 	}
+	PermissionTable.ForeignKeys[0].RefTable = ActionTable
+	PermissionTable.ForeignKeys[1].RefTable = ResourceTable
 	PermissionTable.Annotation = &entsql.Annotation{
 		Table: "permission",
 	}
@@ -202,15 +128,9 @@ func init() {
 	UsersTable.Annotation = &entsql.Annotation{
 		Table: "users",
 	}
+	UsersPermissionTable.ForeignKeys[0].RefTable = PermissionTable
+	UsersPermissionTable.ForeignKeys[1].RefTable = UsersTable
 	UsersPermissionTable.Annotation = &entsql.Annotation{
 		Table: "users_permission",
 	}
-	ActionPermissionsTable.ForeignKeys[0].RefTable = ActionTable
-	ActionPermissionsTable.ForeignKeys[1].RefTable = PermissionTable
-	PermissionUsersPermissionsTable.ForeignKeys[0].RefTable = PermissionTable
-	PermissionUsersPermissionsTable.ForeignKeys[1].RefTable = UsersPermissionTable
-	ResourcePermissionsTable.ForeignKeys[0].RefTable = ResourceTable
-	ResourcePermissionsTable.ForeignKeys[1].RefTable = PermissionTable
-	UserUsersPermissionsTable.ForeignKeys[0].RefTable = UsersTable
-	UserUsersPermissionsTable.ForeignKeys[1].RefTable = UsersPermissionTable
 }

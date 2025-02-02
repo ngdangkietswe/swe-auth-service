@@ -63,34 +63,14 @@ func (pc *PermissionCreate) SetNillableID(u *uuid.UUID) *PermissionCreate {
 	return pc
 }
 
-// AddActionIDs adds the "action" edge to the Action entity by IDs.
-func (pc *PermissionCreate) AddActionIDs(ids ...uuid.UUID) *PermissionCreate {
-	pc.mutation.AddActionIDs(ids...)
-	return pc
+// SetAction sets the "action" edge to the Action entity.
+func (pc *PermissionCreate) SetAction(a *Action) *PermissionCreate {
+	return pc.SetActionID(a.ID)
 }
 
-// AddAction adds the "action" edges to the Action entity.
-func (pc *PermissionCreate) AddAction(a ...*Action) *PermissionCreate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pc.AddActionIDs(ids...)
-}
-
-// AddResourceIDs adds the "resource" edge to the Resource entity by IDs.
-func (pc *PermissionCreate) AddResourceIDs(ids ...uuid.UUID) *PermissionCreate {
-	pc.mutation.AddResourceIDs(ids...)
-	return pc
-}
-
-// AddResource adds the "resource" edges to the Resource entity.
-func (pc *PermissionCreate) AddResource(r ...*Resource) *PermissionCreate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return pc.AddResourceIDs(ids...)
+// SetResource sets the "resource" edge to the Resource entity.
+func (pc *PermissionCreate) SetResource(r *Resource) *PermissionCreate {
+	return pc.SetResourceID(r.ID)
 }
 
 // AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
@@ -157,6 +137,12 @@ func (pc *PermissionCreate) check() error {
 	if _, ok := pc.mutation.ResourceID(); !ok {
 		return &ValidationError{Name: "resource_id", err: errors.New(`ent: missing required field "Permission.resource_id"`)}
 	}
+	if len(pc.mutation.ActionIDs()) == 0 {
+		return &ValidationError{Name: "action", err: errors.New(`ent: missing required edge "Permission.action"`)}
+	}
+	if len(pc.mutation.ResourceIDs()) == 0 {
+		return &ValidationError{Name: "resource", err: errors.New(`ent: missing required edge "Permission.resource"`)}
+	}
 	return nil
 }
 
@@ -192,24 +178,16 @@ func (pc *PermissionCreate) createSpec() (*Permission, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := pc.mutation.ActionID(); ok {
-		_spec.SetField(permission.FieldActionID, field.TypeUUID, value)
-		_node.ActionID = value
-	}
-	if value, ok := pc.mutation.ResourceID(); ok {
-		_spec.SetField(permission.FieldResourceID, field.TypeUUID, value)
-		_node.ResourceID = value
-	}
 	if value, ok := pc.mutation.Description(); ok {
 		_spec.SetField(permission.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
 	if nodes := pc.mutation.ActionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
+			Columns: []string{permission.ActionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
@@ -218,14 +196,15 @@ func (pc *PermissionCreate) createSpec() (*Permission, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.ActionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.ResourceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
+			Columns: []string{permission.ResourceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
@@ -234,14 +213,15 @@ func (pc *PermissionCreate) createSpec() (*Permission, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.ResourceID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),

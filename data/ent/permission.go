@@ -9,7 +9,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/action"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/resource"
 )
 
 // Permission is the model entity for the Permission schema.
@@ -32,9 +34,9 @@ type Permission struct {
 // PermissionEdges holds the relations/edges for other nodes in the graph.
 type PermissionEdges struct {
 	// Action holds the value of the action edge.
-	Action []*Action `json:"action,omitempty"`
+	Action *Action `json:"action,omitempty"`
 	// Resource holds the value of the resource edge.
-	Resource []*Resource `json:"resource,omitempty"`
+	Resource *Resource `json:"resource,omitempty"`
 	// UsersPermissions holds the value of the users_permissions edge.
 	UsersPermissions []*UsersPermission `json:"users_permissions,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -43,19 +45,23 @@ type PermissionEdges struct {
 }
 
 // ActionOrErr returns the Action value or an error if the edge
-// was not loaded in eager-loading.
-func (e PermissionEdges) ActionOrErr() ([]*Action, error) {
-	if e.loadedTypes[0] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PermissionEdges) ActionOrErr() (*Action, error) {
+	if e.Action != nil {
 		return e.Action, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: action.Label}
 	}
 	return nil, &NotLoadedError{edge: "action"}
 }
 
 // ResourceOrErr returns the Resource value or an error if the edge
-// was not loaded in eager-loading.
-func (e PermissionEdges) ResourceOrErr() ([]*Resource, error) {
-	if e.loadedTypes[1] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PermissionEdges) ResourceOrErr() (*Resource, error) {
+	if e.Resource != nil {
 		return e.Resource, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: resource.Label}
 	}
 	return nil, &NotLoadedError{edge: "resource"}
 }

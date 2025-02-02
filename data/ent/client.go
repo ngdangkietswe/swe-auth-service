@@ -354,7 +354,7 @@ func (c *ActionClient) QueryPermissions(a *Action) *PermissionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(action.Table, action.FieldID, id),
 			sqlgraph.To(permission.Table, permission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, action.PermissionsTable, action.PermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, action.PermissionsTable, action.PermissionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -503,7 +503,7 @@ func (c *PermissionClient) QueryAction(pe *Permission) *ActionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, id),
 			sqlgraph.To(action.Table, action.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, permission.ActionTable, permission.ActionPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, permission.ActionTable, permission.ActionColumn),
 		)
 		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
 		return fromV, nil
@@ -519,7 +519,7 @@ func (c *PermissionClient) QueryResource(pe *Permission) *ResourceQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, id),
 			sqlgraph.To(resource.Table, resource.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, permission.ResourceTable, permission.ResourcePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, permission.ResourceTable, permission.ResourceColumn),
 		)
 		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
 		return fromV, nil
@@ -535,7 +535,7 @@ func (c *PermissionClient) QueryUsersPermissions(pe *Permission) *UsersPermissio
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, id),
 			sqlgraph.To(userspermission.Table, userspermission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, permission.UsersPermissionsTable, permission.UsersPermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, permission.UsersPermissionsTable, permission.UsersPermissionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
 		return fromV, nil
@@ -684,7 +684,7 @@ func (c *ResourceClient) QueryPermissions(r *Resource) *PermissionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(resource.Table, resource.FieldID, id),
 			sqlgraph.To(permission.Table, permission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, resource.PermissionsTable, resource.PermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, resource.PermissionsTable, resource.PermissionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
 		return fromV, nil
@@ -833,7 +833,7 @@ func (c *UserClient) QueryUsersPermissions(u *User) *UsersPermissionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(userspermission.Table, userspermission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.UsersPermissionsTable, user.UsersPermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UsersPermissionsTable, user.UsersPermissionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -982,7 +982,7 @@ func (c *UsersPermissionClient) QueryUser(up *UsersPermission) *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(userspermission.Table, userspermission.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, userspermission.UserTable, userspermission.UserPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, userspermission.UserTable, userspermission.UserColumn),
 		)
 		fromV = sqlgraph.Neighbors(up.driver.Dialect(), step)
 		return fromV, nil
@@ -998,7 +998,7 @@ func (c *UsersPermissionClient) QueryPermission(up *UsersPermission) *Permission
 		step := sqlgraph.NewStep(
 			sqlgraph.From(userspermission.Table, userspermission.FieldID, id),
 			sqlgraph.To(permission.Table, permission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, userspermission.PermissionTable, userspermission.PermissionPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, userspermission.PermissionTable, userspermission.PermissionColumn),
 		)
 		fromV = sqlgraph.Neighbors(up.driver.Dialect(), step)
 		return fromV, nil

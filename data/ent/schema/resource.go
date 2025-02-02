@@ -4,9 +4,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-go-common-shared/util"
 )
 
 // Resource holds the schema definition for the Resource entity.
@@ -26,7 +26,7 @@ func (Resource) Fields() []ent.Field {
 // Edges of the Resource.
 func (Resource) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("permissions", Permission.Type),
+		util.One2Many("permissions", Permission.Type),
 	}
 }
 

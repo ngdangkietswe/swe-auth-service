@@ -543,15 +543,11 @@ type PermissionMutation struct {
 	op                       Op
 	typ                      string
 	id                       *uuid.UUID
-	action_id                *uuid.UUID
-	resource_id              *uuid.UUID
 	description              *string
 	clearedFields            map[string]struct{}
-	action                   map[uuid.UUID]struct{}
-	removedaction            map[uuid.UUID]struct{}
+	action                   *uuid.UUID
 	clearedaction            bool
-	resource                 map[uuid.UUID]struct{}
-	removedresource          map[uuid.UUID]struct{}
+	resource                 *uuid.UUID
 	clearedresource          bool
 	users_permissions        map[uuid.UUID]struct{}
 	removedusers_permissions map[uuid.UUID]struct{}
@@ -667,12 +663,12 @@ func (m *PermissionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 
 // SetActionID sets the "action_id" field.
 func (m *PermissionMutation) SetActionID(u uuid.UUID) {
-	m.action_id = &u
+	m.action = &u
 }
 
 // ActionID returns the value of the "action_id" field in the mutation.
 func (m *PermissionMutation) ActionID() (r uuid.UUID, exists bool) {
-	v := m.action_id
+	v := m.action
 	if v == nil {
 		return
 	}
@@ -698,17 +694,17 @@ func (m *PermissionMutation) OldActionID(ctx context.Context) (v uuid.UUID, err 
 
 // ResetActionID resets all changes to the "action_id" field.
 func (m *PermissionMutation) ResetActionID() {
-	m.action_id = nil
+	m.action = nil
 }
 
 // SetResourceID sets the "resource_id" field.
 func (m *PermissionMutation) SetResourceID(u uuid.UUID) {
-	m.resource_id = &u
+	m.resource = &u
 }
 
 // ResourceID returns the value of the "resource_id" field in the mutation.
 func (m *PermissionMutation) ResourceID() (r uuid.UUID, exists bool) {
-	v := m.resource_id
+	v := m.resource
 	if v == nil {
 		return
 	}
@@ -734,7 +730,7 @@ func (m *PermissionMutation) OldResourceID(ctx context.Context) (v uuid.UUID, er
 
 // ResetResourceID resets all changes to the "resource_id" field.
 func (m *PermissionMutation) ResetResourceID() {
-	m.resource_id = nil
+	m.resource = nil
 }
 
 // SetDescription sets the "description" field.
@@ -786,19 +782,10 @@ func (m *PermissionMutation) ResetDescription() {
 	delete(m.clearedFields, permission.FieldDescription)
 }
 
-// AddActionIDs adds the "action" edge to the Action entity by ids.
-func (m *PermissionMutation) AddActionIDs(ids ...uuid.UUID) {
-	if m.action == nil {
-		m.action = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.action[ids[i]] = struct{}{}
-	}
-}
-
 // ClearAction clears the "action" edge to the Action entity.
 func (m *PermissionMutation) ClearAction() {
 	m.clearedaction = true
+	m.clearedFields[permission.FieldActionID] = struct{}{}
 }
 
 // ActionCleared reports if the "action" edge to the Action entity was cleared.
@@ -806,29 +793,12 @@ func (m *PermissionMutation) ActionCleared() bool {
 	return m.clearedaction
 }
 
-// RemoveActionIDs removes the "action" edge to the Action entity by IDs.
-func (m *PermissionMutation) RemoveActionIDs(ids ...uuid.UUID) {
-	if m.removedaction == nil {
-		m.removedaction = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.action, ids[i])
-		m.removedaction[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedAction returns the removed IDs of the "action" edge to the Action entity.
-func (m *PermissionMutation) RemovedActionIDs() (ids []uuid.UUID) {
-	for id := range m.removedaction {
-		ids = append(ids, id)
-	}
-	return
-}
-
 // ActionIDs returns the "action" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActionID instead. It exists only for internal usage by the builders.
 func (m *PermissionMutation) ActionIDs() (ids []uuid.UUID) {
-	for id := range m.action {
-		ids = append(ids, id)
+	if id := m.action; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -837,22 +807,12 @@ func (m *PermissionMutation) ActionIDs() (ids []uuid.UUID) {
 func (m *PermissionMutation) ResetAction() {
 	m.action = nil
 	m.clearedaction = false
-	m.removedaction = nil
-}
-
-// AddResourceIDs adds the "resource" edge to the Resource entity by ids.
-func (m *PermissionMutation) AddResourceIDs(ids ...uuid.UUID) {
-	if m.resource == nil {
-		m.resource = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.resource[ids[i]] = struct{}{}
-	}
 }
 
 // ClearResource clears the "resource" edge to the Resource entity.
 func (m *PermissionMutation) ClearResource() {
 	m.clearedresource = true
+	m.clearedFields[permission.FieldResourceID] = struct{}{}
 }
 
 // ResourceCleared reports if the "resource" edge to the Resource entity was cleared.
@@ -860,29 +820,12 @@ func (m *PermissionMutation) ResourceCleared() bool {
 	return m.clearedresource
 }
 
-// RemoveResourceIDs removes the "resource" edge to the Resource entity by IDs.
-func (m *PermissionMutation) RemoveResourceIDs(ids ...uuid.UUID) {
-	if m.removedresource == nil {
-		m.removedresource = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.resource, ids[i])
-		m.removedresource[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedResource returns the removed IDs of the "resource" edge to the Resource entity.
-func (m *PermissionMutation) RemovedResourceIDs() (ids []uuid.UUID) {
-	for id := range m.removedresource {
-		ids = append(ids, id)
-	}
-	return
-}
-
 // ResourceIDs returns the "resource" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ResourceID instead. It exists only for internal usage by the builders.
 func (m *PermissionMutation) ResourceIDs() (ids []uuid.UUID) {
-	for id := range m.resource {
-		ids = append(ids, id)
+	if id := m.resource; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -891,7 +834,6 @@ func (m *PermissionMutation) ResourceIDs() (ids []uuid.UUID) {
 func (m *PermissionMutation) ResetResource() {
 	m.resource = nil
 	m.clearedresource = false
-	m.removedresource = nil
 }
 
 // AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by ids.
@@ -983,10 +925,10 @@ func (m *PermissionMutation) Type() string {
 // AddedFields().
 func (m *PermissionMutation) Fields() []string {
 	fields := make([]string, 0, 3)
-	if m.action_id != nil {
+	if m.action != nil {
 		fields = append(fields, permission.FieldActionID)
 	}
-	if m.resource_id != nil {
+	if m.resource != nil {
 		fields = append(fields, permission.FieldResourceID)
 	}
 	if m.description != nil {
@@ -1142,17 +1084,13 @@ func (m *PermissionMutation) AddedEdges() []string {
 func (m *PermissionMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case permission.EdgeAction:
-		ids := make([]ent.Value, 0, len(m.action))
-		for id := range m.action {
-			ids = append(ids, id)
+		if id := m.action; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case permission.EdgeResource:
-		ids := make([]ent.Value, 0, len(m.resource))
-		for id := range m.resource {
-			ids = append(ids, id)
+		if id := m.resource; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case permission.EdgeUsersPermissions:
 		ids := make([]ent.Value, 0, len(m.users_permissions))
 		for id := range m.users_permissions {
@@ -1166,12 +1104,6 @@ func (m *PermissionMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PermissionMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.removedaction != nil {
-		edges = append(edges, permission.EdgeAction)
-	}
-	if m.removedresource != nil {
-		edges = append(edges, permission.EdgeResource)
-	}
 	if m.removedusers_permissions != nil {
 		edges = append(edges, permission.EdgeUsersPermissions)
 	}
@@ -1182,18 +1114,6 @@ func (m *PermissionMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *PermissionMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case permission.EdgeAction:
-		ids := make([]ent.Value, 0, len(m.removedaction))
-		for id := range m.removedaction {
-			ids = append(ids, id)
-		}
-		return ids
-	case permission.EdgeResource:
-		ids := make([]ent.Value, 0, len(m.removedresource))
-		for id := range m.removedresource {
-			ids = append(ids, id)
-		}
-		return ids
 	case permission.EdgeUsersPermissions:
 		ids := make([]ent.Value, 0, len(m.removedusers_permissions))
 		for id := range m.removedusers_permissions {
@@ -1237,6 +1157,12 @@ func (m *PermissionMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *PermissionMutation) ClearEdge(name string) error {
 	switch name {
+	case permission.EdgeAction:
+		m.ClearAction()
+		return nil
+	case permission.EdgeResource:
+		m.ClearResource()
+		return nil
 	}
 	return fmt.Errorf("unknown Permission unique edge %s", name)
 }
@@ -2536,14 +2462,10 @@ type UsersPermissionMutation struct {
 	op                Op
 	typ               string
 	id                *uuid.UUID
-	user_id           *uuid.UUID
-	permission_id     *uuid.UUID
 	clearedFields     map[string]struct{}
-	user              map[uuid.UUID]struct{}
-	removeduser       map[uuid.UUID]struct{}
+	user              *uuid.UUID
 	cleareduser       bool
-	permission        map[uuid.UUID]struct{}
-	removedpermission map[uuid.UUID]struct{}
+	permission        *uuid.UUID
 	clearedpermission bool
 	done              bool
 	oldValue          func(context.Context) (*UsersPermission, error)
@@ -2656,12 +2578,12 @@ func (m *UsersPermissionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) 
 
 // SetUserID sets the "user_id" field.
 func (m *UsersPermissionMutation) SetUserID(u uuid.UUID) {
-	m.user_id = &u
+	m.user = &u
 }
 
 // UserID returns the value of the "user_id" field in the mutation.
 func (m *UsersPermissionMutation) UserID() (r uuid.UUID, exists bool) {
-	v := m.user_id
+	v := m.user
 	if v == nil {
 		return
 	}
@@ -2687,17 +2609,17 @@ func (m *UsersPermissionMutation) OldUserID(ctx context.Context) (v uuid.UUID, e
 
 // ResetUserID resets all changes to the "user_id" field.
 func (m *UsersPermissionMutation) ResetUserID() {
-	m.user_id = nil
+	m.user = nil
 }
 
 // SetPermissionID sets the "permission_id" field.
 func (m *UsersPermissionMutation) SetPermissionID(u uuid.UUID) {
-	m.permission_id = &u
+	m.permission = &u
 }
 
 // PermissionID returns the value of the "permission_id" field in the mutation.
 func (m *UsersPermissionMutation) PermissionID() (r uuid.UUID, exists bool) {
-	v := m.permission_id
+	v := m.permission
 	if v == nil {
 		return
 	}
@@ -2723,22 +2645,13 @@ func (m *UsersPermissionMutation) OldPermissionID(ctx context.Context) (v uuid.U
 
 // ResetPermissionID resets all changes to the "permission_id" field.
 func (m *UsersPermissionMutation) ResetPermissionID() {
-	m.permission_id = nil
-}
-
-// AddUserIDs adds the "user" edge to the User entity by ids.
-func (m *UsersPermissionMutation) AddUserIDs(ids ...uuid.UUID) {
-	if m.user == nil {
-		m.user = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.user[ids[i]] = struct{}{}
-	}
+	m.permission = nil
 }
 
 // ClearUser clears the "user" edge to the User entity.
 func (m *UsersPermissionMutation) ClearUser() {
 	m.cleareduser = true
+	m.clearedFields[userspermission.FieldUserID] = struct{}{}
 }
 
 // UserCleared reports if the "user" edge to the User entity was cleared.
@@ -2746,29 +2659,12 @@ func (m *UsersPermissionMutation) UserCleared() bool {
 	return m.cleareduser
 }
 
-// RemoveUserIDs removes the "user" edge to the User entity by IDs.
-func (m *UsersPermissionMutation) RemoveUserIDs(ids ...uuid.UUID) {
-	if m.removeduser == nil {
-		m.removeduser = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.user, ids[i])
-		m.removeduser[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedUser returns the removed IDs of the "user" edge to the User entity.
-func (m *UsersPermissionMutation) RemovedUserIDs() (ids []uuid.UUID) {
-	for id := range m.removeduser {
-		ids = append(ids, id)
-	}
-	return
-}
-
 // UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
 func (m *UsersPermissionMutation) UserIDs() (ids []uuid.UUID) {
-	for id := range m.user {
-		ids = append(ids, id)
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -2777,22 +2673,12 @@ func (m *UsersPermissionMutation) UserIDs() (ids []uuid.UUID) {
 func (m *UsersPermissionMutation) ResetUser() {
 	m.user = nil
 	m.cleareduser = false
-	m.removeduser = nil
-}
-
-// AddPermissionIDs adds the "permission" edge to the Permission entity by ids.
-func (m *UsersPermissionMutation) AddPermissionIDs(ids ...uuid.UUID) {
-	if m.permission == nil {
-		m.permission = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.permission[ids[i]] = struct{}{}
-	}
 }
 
 // ClearPermission clears the "permission" edge to the Permission entity.
 func (m *UsersPermissionMutation) ClearPermission() {
 	m.clearedpermission = true
+	m.clearedFields[userspermission.FieldPermissionID] = struct{}{}
 }
 
 // PermissionCleared reports if the "permission" edge to the Permission entity was cleared.
@@ -2800,29 +2686,12 @@ func (m *UsersPermissionMutation) PermissionCleared() bool {
 	return m.clearedpermission
 }
 
-// RemovePermissionIDs removes the "permission" edge to the Permission entity by IDs.
-func (m *UsersPermissionMutation) RemovePermissionIDs(ids ...uuid.UUID) {
-	if m.removedpermission == nil {
-		m.removedpermission = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.permission, ids[i])
-		m.removedpermission[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedPermission returns the removed IDs of the "permission" edge to the Permission entity.
-func (m *UsersPermissionMutation) RemovedPermissionIDs() (ids []uuid.UUID) {
-	for id := range m.removedpermission {
-		ids = append(ids, id)
-	}
-	return
-}
-
 // PermissionIDs returns the "permission" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PermissionID instead. It exists only for internal usage by the builders.
 func (m *UsersPermissionMutation) PermissionIDs() (ids []uuid.UUID) {
-	for id := range m.permission {
-		ids = append(ids, id)
+	if id := m.permission; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -2831,7 +2700,6 @@ func (m *UsersPermissionMutation) PermissionIDs() (ids []uuid.UUID) {
 func (m *UsersPermissionMutation) ResetPermission() {
 	m.permission = nil
 	m.clearedpermission = false
-	m.removedpermission = nil
 }
 
 // Where appends a list predicates to the UsersPermissionMutation builder.
@@ -2869,10 +2737,10 @@ func (m *UsersPermissionMutation) Type() string {
 // AddedFields().
 func (m *UsersPermissionMutation) Fields() []string {
 	fields := make([]string, 0, 2)
-	if m.user_id != nil {
+	if m.user != nil {
 		fields = append(fields, userspermission.FieldUserID)
 	}
-	if m.permission_id != nil {
+	if m.permission != nil {
 		fields = append(fields, userspermission.FieldPermissionID)
 	}
 	return fields
@@ -2999,17 +2867,13 @@ func (m *UsersPermissionMutation) AddedEdges() []string {
 func (m *UsersPermissionMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case userspermission.EdgeUser:
-		ids := make([]ent.Value, 0, len(m.user))
-		for id := range m.user {
-			ids = append(ids, id)
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case userspermission.EdgePermission:
-		ids := make([]ent.Value, 0, len(m.permission))
-		for id := range m.permission {
-			ids = append(ids, id)
+		if id := m.permission; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	}
 	return nil
 }
@@ -3017,32 +2881,12 @@ func (m *UsersPermissionMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UsersPermissionMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 2)
-	if m.removeduser != nil {
-		edges = append(edges, userspermission.EdgeUser)
-	}
-	if m.removedpermission != nil {
-		edges = append(edges, userspermission.EdgePermission)
-	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UsersPermissionMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case userspermission.EdgeUser:
-		ids := make([]ent.Value, 0, len(m.removeduser))
-		for id := range m.removeduser {
-			ids = append(ids, id)
-		}
-		return ids
-	case userspermission.EdgePermission:
-		ids := make([]ent.Value, 0, len(m.removedpermission))
-		for id := range m.removedpermission {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
@@ -3074,6 +2918,12 @@ func (m *UsersPermissionMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *UsersPermissionMutation) ClearEdge(name string) error {
 	switch name {
+	case userspermission.EdgeUser:
+		m.ClearUser()
+		return nil
+	case userspermission.EdgePermission:
+		m.ClearPermission()
+		return nil
 	}
 	return fmt.Errorf("unknown UsersPermission unique edge %s", name)
 }

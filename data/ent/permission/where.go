@@ -89,26 +89,6 @@ func ActionIDNotIn(vs ...uuid.UUID) predicate.Permission {
 	return predicate.Permission(sql.FieldNotIn(FieldActionID, vs...))
 }
 
-// ActionIDGT applies the GT predicate on the "action_id" field.
-func ActionIDGT(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldGT(FieldActionID, v))
-}
-
-// ActionIDGTE applies the GTE predicate on the "action_id" field.
-func ActionIDGTE(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldGTE(FieldActionID, v))
-}
-
-// ActionIDLT applies the LT predicate on the "action_id" field.
-func ActionIDLT(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldLT(FieldActionID, v))
-}
-
-// ActionIDLTE applies the LTE predicate on the "action_id" field.
-func ActionIDLTE(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldLTE(FieldActionID, v))
-}
-
 // ResourceIDEQ applies the EQ predicate on the "resource_id" field.
 func ResourceIDEQ(v uuid.UUID) predicate.Permission {
 	return predicate.Permission(sql.FieldEQ(FieldResourceID, v))
@@ -127,26 +107,6 @@ func ResourceIDIn(vs ...uuid.UUID) predicate.Permission {
 // ResourceIDNotIn applies the NotIn predicate on the "resource_id" field.
 func ResourceIDNotIn(vs ...uuid.UUID) predicate.Permission {
 	return predicate.Permission(sql.FieldNotIn(FieldResourceID, vs...))
-}
-
-// ResourceIDGT applies the GT predicate on the "resource_id" field.
-func ResourceIDGT(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldGT(FieldResourceID, v))
-}
-
-// ResourceIDGTE applies the GTE predicate on the "resource_id" field.
-func ResourceIDGTE(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldGTE(FieldResourceID, v))
-}
-
-// ResourceIDLT applies the LT predicate on the "resource_id" field.
-func ResourceIDLT(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldLT(FieldResourceID, v))
-}
-
-// ResourceIDLTE applies the LTE predicate on the "resource_id" field.
-func ResourceIDLTE(v uuid.UUID) predicate.Permission {
-	return predicate.Permission(sql.FieldLTE(FieldResourceID, v))
 }
 
 // DescriptionEQ applies the EQ predicate on the "description" field.
@@ -229,7 +189,7 @@ func HasAction() predicate.Permission {
 	return predicate.Permission(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ActionTable, ActionPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ActionTable, ActionColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -252,7 +212,7 @@ func HasResource() predicate.Permission {
 	return predicate.Permission(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ResourceTable, ResourcePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ResourceTable, ResourceColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -275,7 +235,7 @@ func HasUsersPermissions() predicate.Permission {
 	return predicate.Permission(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, UsersPermissionsTable, UsersPermissionsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

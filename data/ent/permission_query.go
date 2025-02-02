@@ -80,7 +80,7 @@ func (pq *PermissionQuery) QueryAction() *ActionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, selector),
 			sqlgraph.To(action.Table, action.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, permission.ActionTable, permission.ActionPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, permission.ActionTable, permission.ActionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -102,7 +102,7 @@ func (pq *PermissionQuery) QueryResource() *ResourceQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, selector),
 			sqlgraph.To(resource.Table, resource.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, permission.ResourceTable, permission.ResourcePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, permission.ResourceTable, permission.ResourceColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -124,7 +124,7 @@ func (pq *PermissionQuery) QueryUsersPermissions() *UsersPermissionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(permission.Table, permission.FieldID, selector),
 			sqlgraph.To(userspermission.Table, userspermission.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, permission.UsersPermissionsTable, permission.UsersPermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, permission.UsersPermissionsTable, permission.UsersPermissionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -469,16 +469,14 @@ func (pq *PermissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*P
 		return nodes, nil
 	}
 	if query := pq.withAction; query != nil {
-		if err := pq.loadAction(ctx, query, nodes,
-			func(n *Permission) { n.Edges.Action = []*Action{} },
-			func(n *Permission, e *Action) { n.Edges.Action = append(n.Edges.Action, e) }); err != nil {
+		if err := pq.loadAction(ctx, query, nodes, nil,
+			func(n *Permission, e *Action) { n.Edges.Action = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := pq.withResource; query != nil {
-		if err := pq.loadResource(ctx, query, nodes,
-			func(n *Permission) { n.Edges.Resource = []*Resource{} },
-			func(n *Permission, e *Resource) { n.Edges.Resource = append(n.Edges.Resource, e) }); err != nil {
+		if err := pq.loadResource(ctx, query, nodes, nil,
+			func(n *Permission, e *Resource) { n.Edges.Resource = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -495,185 +493,90 @@ func (pq *PermissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*P
 }
 
 func (pq *PermissionQuery) loadAction(ctx context.Context, query *ActionQuery, nodes []*Permission, init func(*Permission), assign func(*Permission, *Action)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[uuid.UUID]*Permission)
-	nids := make(map[uuid.UUID]map[*Permission]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Permission)
+	for i := range nodes {
+		fk := nodes[i].ActionID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
 		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(permission.ActionTable)
-		s.Join(joinT).On(s.C(action.FieldID), joinT.C(permission.ActionPrimaryKey[0]))
-		s.Where(sql.InValues(joinT.C(permission.ActionPrimaryKey[1]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(permission.ActionPrimaryKey[1]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
+	if len(ids) == 0 {
+		return nil
 	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(uuid.UUID)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := *values[0].(*uuid.UUID)
-				inValue := *values[1].(*uuid.UUID)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Permission]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Action](ctx, query, qr, query.inters)
+	query.Where(action.IDIn(ids...))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected "action" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "action_id" returned %v`, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
 	return nil
 }
 func (pq *PermissionQuery) loadResource(ctx context.Context, query *ResourceQuery, nodes []*Permission, init func(*Permission), assign func(*Permission, *Resource)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[uuid.UUID]*Permission)
-	nids := make(map[uuid.UUID]map[*Permission]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Permission)
+	for i := range nodes {
+		fk := nodes[i].ResourceID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
 		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(permission.ResourceTable)
-		s.Join(joinT).On(s.C(resource.FieldID), joinT.C(permission.ResourcePrimaryKey[0]))
-		s.Where(sql.InValues(joinT.C(permission.ResourcePrimaryKey[1]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(permission.ResourcePrimaryKey[1]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
+	if len(ids) == 0 {
+		return nil
 	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(uuid.UUID)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := *values[0].(*uuid.UUID)
-				inValue := *values[1].(*uuid.UUID)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Permission]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Resource](ctx, query, qr, query.inters)
+	query.Where(resource.IDIn(ids...))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected "resource" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "resource_id" returned %v`, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
 	return nil
 }
 func (pq *PermissionQuery) loadUsersPermissions(ctx context.Context, query *UsersPermissionQuery, nodes []*Permission, init func(*Permission), assign func(*Permission, *UsersPermission)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[uuid.UUID]*Permission)
-	nids := make(map[uuid.UUID]map[*Permission]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Permission)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 		if init != nil {
-			init(node)
+			init(nodes[i])
 		}
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(permission.UsersPermissionsTable)
-		s.Join(joinT).On(s.C(userspermission.FieldID), joinT.C(permission.UsersPermissionsPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(permission.UsersPermissionsPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(permission.UsersPermissionsPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(userspermission.FieldPermissionID)
 	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(uuid.UUID)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := *values[0].(*uuid.UUID)
-				inValue := *values[1].(*uuid.UUID)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Permission]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*UsersPermission](ctx, query, qr, query.inters)
+	query.Where(predicate.UsersPermission(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(permission.UsersPermissionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		fk := n.PermissionID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected "users_permissions" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "permission_id" returned %v for node %v`, fk, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -702,6 +605,12 @@ func (pq *PermissionQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != permission.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if pq.withAction != nil {
+			_spec.Node.AddColumnOnce(permission.FieldActionID)
+		}
+		if pq.withResource != nil {
+			_spec.Node.AddColumnOnce(permission.FieldResourceID)
 		}
 	}
 	if ps := pq.predicates; len(ps) > 0 {

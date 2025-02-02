@@ -79,34 +79,14 @@ func (pu *PermissionUpdate) ClearDescription() *PermissionUpdate {
 	return pu
 }
 
-// AddActionIDs adds the "action" edge to the Action entity by IDs.
-func (pu *PermissionUpdate) AddActionIDs(ids ...uuid.UUID) *PermissionUpdate {
-	pu.mutation.AddActionIDs(ids...)
-	return pu
+// SetAction sets the "action" edge to the Action entity.
+func (pu *PermissionUpdate) SetAction(a *Action) *PermissionUpdate {
+	return pu.SetActionID(a.ID)
 }
 
-// AddAction adds the "action" edges to the Action entity.
-func (pu *PermissionUpdate) AddAction(a ...*Action) *PermissionUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pu.AddActionIDs(ids...)
-}
-
-// AddResourceIDs adds the "resource" edge to the Resource entity by IDs.
-func (pu *PermissionUpdate) AddResourceIDs(ids ...uuid.UUID) *PermissionUpdate {
-	pu.mutation.AddResourceIDs(ids...)
-	return pu
-}
-
-// AddResource adds the "resource" edges to the Resource entity.
-func (pu *PermissionUpdate) AddResource(r ...*Resource) *PermissionUpdate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return pu.AddResourceIDs(ids...)
+// SetResource sets the "resource" edge to the Resource entity.
+func (pu *PermissionUpdate) SetResource(r *Resource) *PermissionUpdate {
+	return pu.SetResourceID(r.ID)
 }
 
 // AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
@@ -129,46 +109,16 @@ func (pu *PermissionUpdate) Mutation() *PermissionMutation {
 	return pu.mutation
 }
 
-// ClearAction clears all "action" edges to the Action entity.
+// ClearAction clears the "action" edge to the Action entity.
 func (pu *PermissionUpdate) ClearAction() *PermissionUpdate {
 	pu.mutation.ClearAction()
 	return pu
 }
 
-// RemoveActionIDs removes the "action" edge to Action entities by IDs.
-func (pu *PermissionUpdate) RemoveActionIDs(ids ...uuid.UUID) *PermissionUpdate {
-	pu.mutation.RemoveActionIDs(ids...)
-	return pu
-}
-
-// RemoveAction removes "action" edges to Action entities.
-func (pu *PermissionUpdate) RemoveAction(a ...*Action) *PermissionUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pu.RemoveActionIDs(ids...)
-}
-
-// ClearResource clears all "resource" edges to the Resource entity.
+// ClearResource clears the "resource" edge to the Resource entity.
 func (pu *PermissionUpdate) ClearResource() *PermissionUpdate {
 	pu.mutation.ClearResource()
 	return pu
-}
-
-// RemoveResourceIDs removes the "resource" edge to Resource entities by IDs.
-func (pu *PermissionUpdate) RemoveResourceIDs(ids ...uuid.UUID) *PermissionUpdate {
-	pu.mutation.RemoveResourceIDs(ids...)
-	return pu
-}
-
-// RemoveResource removes "resource" edges to Resource entities.
-func (pu *PermissionUpdate) RemoveResource(r ...*Resource) *PermissionUpdate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return pu.RemoveResourceIDs(ids...)
 }
 
 // ClearUsersPermissions clears all "users_permissions" edges to the UsersPermission entity.
@@ -219,7 +169,21 @@ func (pu *PermissionUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (pu *PermissionUpdate) check() error {
+	if pu.mutation.ActionCleared() && len(pu.mutation.ActionIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Permission.action"`)
+	}
+	if pu.mutation.ResourceCleared() && len(pu.mutation.ResourceIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Permission.resource"`)
+	}
+	return nil
+}
+
 func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := pu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(permission.Table, permission.Columns, sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID))
 	if ps := pu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -227,12 +191,6 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := pu.mutation.ActionID(); ok {
-		_spec.SetField(permission.FieldActionID, field.TypeUUID, value)
-	}
-	if value, ok := pu.mutation.ResourceID(); ok {
-		_spec.SetField(permission.FieldResourceID, field.TypeUUID, value)
 	}
 	if value, ok := pu.mutation.Description(); ok {
 		_spec.SetField(permission.FieldDescription, field.TypeString, value)
@@ -242,39 +200,23 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pu.mutation.ActionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
+			Columns: []string{permission.ActionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedActionIDs(); len(nodes) > 0 && !pu.mutation.ActionCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := pu.mutation.ActionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
+			Columns: []string{permission.ActionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
@@ -287,39 +229,23 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pu.mutation.ResourceCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
+			Columns: []string{permission.ResourceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedResourceIDs(); len(nodes) > 0 && !pu.mutation.ResourceCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := pu.mutation.ResourceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
+			Columns: []string{permission.ResourceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
@@ -332,10 +258,10 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pu.mutation.UsersPermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
@@ -345,10 +271,10 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := pu.mutation.RemovedUsersPermissionsIDs(); len(nodes) > 0 && !pu.mutation.UsersPermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
@@ -361,10 +287,10 @@ func (pu *PermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := pu.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
@@ -443,34 +369,14 @@ func (puo *PermissionUpdateOne) ClearDescription() *PermissionUpdateOne {
 	return puo
 }
 
-// AddActionIDs adds the "action" edge to the Action entity by IDs.
-func (puo *PermissionUpdateOne) AddActionIDs(ids ...uuid.UUID) *PermissionUpdateOne {
-	puo.mutation.AddActionIDs(ids...)
-	return puo
+// SetAction sets the "action" edge to the Action entity.
+func (puo *PermissionUpdateOne) SetAction(a *Action) *PermissionUpdateOne {
+	return puo.SetActionID(a.ID)
 }
 
-// AddAction adds the "action" edges to the Action entity.
-func (puo *PermissionUpdateOne) AddAction(a ...*Action) *PermissionUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return puo.AddActionIDs(ids...)
-}
-
-// AddResourceIDs adds the "resource" edge to the Resource entity by IDs.
-func (puo *PermissionUpdateOne) AddResourceIDs(ids ...uuid.UUID) *PermissionUpdateOne {
-	puo.mutation.AddResourceIDs(ids...)
-	return puo
-}
-
-// AddResource adds the "resource" edges to the Resource entity.
-func (puo *PermissionUpdateOne) AddResource(r ...*Resource) *PermissionUpdateOne {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return puo.AddResourceIDs(ids...)
+// SetResource sets the "resource" edge to the Resource entity.
+func (puo *PermissionUpdateOne) SetResource(r *Resource) *PermissionUpdateOne {
+	return puo.SetResourceID(r.ID)
 }
 
 // AddUsersPermissionIDs adds the "users_permissions" edge to the UsersPermission entity by IDs.
@@ -493,46 +399,16 @@ func (puo *PermissionUpdateOne) Mutation() *PermissionMutation {
 	return puo.mutation
 }
 
-// ClearAction clears all "action" edges to the Action entity.
+// ClearAction clears the "action" edge to the Action entity.
 func (puo *PermissionUpdateOne) ClearAction() *PermissionUpdateOne {
 	puo.mutation.ClearAction()
 	return puo
 }
 
-// RemoveActionIDs removes the "action" edge to Action entities by IDs.
-func (puo *PermissionUpdateOne) RemoveActionIDs(ids ...uuid.UUID) *PermissionUpdateOne {
-	puo.mutation.RemoveActionIDs(ids...)
-	return puo
-}
-
-// RemoveAction removes "action" edges to Action entities.
-func (puo *PermissionUpdateOne) RemoveAction(a ...*Action) *PermissionUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return puo.RemoveActionIDs(ids...)
-}
-
-// ClearResource clears all "resource" edges to the Resource entity.
+// ClearResource clears the "resource" edge to the Resource entity.
 func (puo *PermissionUpdateOne) ClearResource() *PermissionUpdateOne {
 	puo.mutation.ClearResource()
 	return puo
-}
-
-// RemoveResourceIDs removes the "resource" edge to Resource entities by IDs.
-func (puo *PermissionUpdateOne) RemoveResourceIDs(ids ...uuid.UUID) *PermissionUpdateOne {
-	puo.mutation.RemoveResourceIDs(ids...)
-	return puo
-}
-
-// RemoveResource removes "resource" edges to Resource entities.
-func (puo *PermissionUpdateOne) RemoveResource(r ...*Resource) *PermissionUpdateOne {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return puo.RemoveResourceIDs(ids...)
 }
 
 // ClearUsersPermissions clears all "users_permissions" edges to the UsersPermission entity.
@@ -596,7 +472,21 @@ func (puo *PermissionUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (puo *PermissionUpdateOne) check() error {
+	if puo.mutation.ActionCleared() && len(puo.mutation.ActionIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Permission.action"`)
+	}
+	if puo.mutation.ResourceCleared() && len(puo.mutation.ResourceIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Permission.resource"`)
+	}
+	return nil
+}
+
 func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission, err error) {
+	if err := puo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(permission.Table, permission.Columns, sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID))
 	id, ok := puo.mutation.ID()
 	if !ok {
@@ -622,12 +512,6 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 			}
 		}
 	}
-	if value, ok := puo.mutation.ActionID(); ok {
-		_spec.SetField(permission.FieldActionID, field.TypeUUID, value)
-	}
-	if value, ok := puo.mutation.ResourceID(); ok {
-		_spec.SetField(permission.FieldResourceID, field.TypeUUID, value)
-	}
 	if value, ok := puo.mutation.Description(); ok {
 		_spec.SetField(permission.FieldDescription, field.TypeString, value)
 	}
@@ -636,39 +520,23 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 	}
 	if puo.mutation.ActionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
+			Columns: []string{permission.ActionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedActionIDs(); len(nodes) > 0 && !puo.mutation.ActionCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := puo.mutation.ActionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ActionTable,
-			Columns: permission.ActionPrimaryKey,
+			Columns: []string{permission.ActionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(action.FieldID, field.TypeUUID),
@@ -681,39 +549,23 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 	}
 	if puo.mutation.ResourceCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
+			Columns: []string{permission.ResourceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedResourceIDs(); len(nodes) > 0 && !puo.mutation.ResourceCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := puo.mutation.ResourceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   permission.ResourceTable,
-			Columns: permission.ResourcePrimaryKey,
+			Columns: []string{permission.ResourceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(resource.FieldID, field.TypeUUID),
@@ -726,10 +578,10 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 	}
 	if puo.mutation.UsersPermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
@@ -739,10 +591,10 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 	}
 	if nodes := puo.mutation.RemovedUsersPermissionsIDs(); len(nodes) > 0 && !puo.mutation.UsersPermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),
@@ -755,10 +607,10 @@ func (puo *PermissionUpdateOne) sqlSave(ctx context.Context) (_node *Permission,
 	}
 	if nodes := puo.mutation.UsersPermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   permission.UsersPermissionsTable,
-			Columns: permission.UsersPermissionsPrimaryKey,
+			Columns: []string{permission.UsersPermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID),

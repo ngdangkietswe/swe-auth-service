@@ -58,34 +58,14 @@ func (upu *UsersPermissionUpdate) SetNillablePermissionID(u *uuid.UUID) *UsersPe
 	return upu
 }
 
-// AddUserIDs adds the "user" edge to the User entity by IDs.
-func (upu *UsersPermissionUpdate) AddUserIDs(ids ...uuid.UUID) *UsersPermissionUpdate {
-	upu.mutation.AddUserIDs(ids...)
-	return upu
+// SetUser sets the "user" edge to the User entity.
+func (upu *UsersPermissionUpdate) SetUser(u *User) *UsersPermissionUpdate {
+	return upu.SetUserID(u.ID)
 }
 
-// AddUser adds the "user" edges to the User entity.
-func (upu *UsersPermissionUpdate) AddUser(u ...*User) *UsersPermissionUpdate {
-	ids := make([]uuid.UUID, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return upu.AddUserIDs(ids...)
-}
-
-// AddPermissionIDs adds the "permission" edge to the Permission entity by IDs.
-func (upu *UsersPermissionUpdate) AddPermissionIDs(ids ...uuid.UUID) *UsersPermissionUpdate {
-	upu.mutation.AddPermissionIDs(ids...)
-	return upu
-}
-
-// AddPermission adds the "permission" edges to the Permission entity.
-func (upu *UsersPermissionUpdate) AddPermission(p ...*Permission) *UsersPermissionUpdate {
-	ids := make([]uuid.UUID, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return upu.AddPermissionIDs(ids...)
+// SetPermission sets the "permission" edge to the Permission entity.
+func (upu *UsersPermissionUpdate) SetPermission(p *Permission) *UsersPermissionUpdate {
+	return upu.SetPermissionID(p.ID)
 }
 
 // Mutation returns the UsersPermissionMutation object of the builder.
@@ -93,46 +73,16 @@ func (upu *UsersPermissionUpdate) Mutation() *UsersPermissionMutation {
 	return upu.mutation
 }
 
-// ClearUser clears all "user" edges to the User entity.
+// ClearUser clears the "user" edge to the User entity.
 func (upu *UsersPermissionUpdate) ClearUser() *UsersPermissionUpdate {
 	upu.mutation.ClearUser()
 	return upu
 }
 
-// RemoveUserIDs removes the "user" edge to User entities by IDs.
-func (upu *UsersPermissionUpdate) RemoveUserIDs(ids ...uuid.UUID) *UsersPermissionUpdate {
-	upu.mutation.RemoveUserIDs(ids...)
-	return upu
-}
-
-// RemoveUser removes "user" edges to User entities.
-func (upu *UsersPermissionUpdate) RemoveUser(u ...*User) *UsersPermissionUpdate {
-	ids := make([]uuid.UUID, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return upu.RemoveUserIDs(ids...)
-}
-
-// ClearPermission clears all "permission" edges to the Permission entity.
+// ClearPermission clears the "permission" edge to the Permission entity.
 func (upu *UsersPermissionUpdate) ClearPermission() *UsersPermissionUpdate {
 	upu.mutation.ClearPermission()
 	return upu
-}
-
-// RemovePermissionIDs removes the "permission" edge to Permission entities by IDs.
-func (upu *UsersPermissionUpdate) RemovePermissionIDs(ids ...uuid.UUID) *UsersPermissionUpdate {
-	upu.mutation.RemovePermissionIDs(ids...)
-	return upu
-}
-
-// RemovePermission removes "permission" edges to Permission entities.
-func (upu *UsersPermissionUpdate) RemovePermission(p ...*Permission) *UsersPermissionUpdate {
-	ids := make([]uuid.UUID, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return upu.RemovePermissionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -162,7 +112,21 @@ func (upu *UsersPermissionUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (upu *UsersPermissionUpdate) check() error {
+	if upu.mutation.UserCleared() && len(upu.mutation.UserIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "UsersPermission.user"`)
+	}
+	if upu.mutation.PermissionCleared() && len(upu.mutation.PermissionIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "UsersPermission.permission"`)
+	}
+	return nil
+}
+
 func (upu *UsersPermissionUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := upu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(userspermission.Table, userspermission.Columns, sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID))
 	if ps := upu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -171,47 +135,25 @@ func (upu *UsersPermissionUpdate) sqlSave(ctx context.Context) (n int, err error
 			}
 		}
 	}
-	if value, ok := upu.mutation.UserID(); ok {
-		_spec.SetField(userspermission.FieldUserID, field.TypeUUID, value)
-	}
-	if value, ok := upu.mutation.PermissionID(); ok {
-		_spec.SetField(userspermission.FieldPermissionID, field.TypeUUID, value)
-	}
 	if upu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
+			Columns: []string{userspermission.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := upu.mutation.RemovedUserIDs(); len(nodes) > 0 && !upu.mutation.UserCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := upu.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
+			Columns: []string{userspermission.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
@@ -224,39 +166,23 @@ func (upu *UsersPermissionUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if upu.mutation.PermissionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
+			Columns: []string{userspermission.PermissionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := upu.mutation.RemovedPermissionIDs(); len(nodes) > 0 && !upu.mutation.PermissionCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := upu.mutation.PermissionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
+			Columns: []string{userspermission.PermissionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -315,34 +241,14 @@ func (upuo *UsersPermissionUpdateOne) SetNillablePermissionID(u *uuid.UUID) *Use
 	return upuo
 }
 
-// AddUserIDs adds the "user" edge to the User entity by IDs.
-func (upuo *UsersPermissionUpdateOne) AddUserIDs(ids ...uuid.UUID) *UsersPermissionUpdateOne {
-	upuo.mutation.AddUserIDs(ids...)
-	return upuo
+// SetUser sets the "user" edge to the User entity.
+func (upuo *UsersPermissionUpdateOne) SetUser(u *User) *UsersPermissionUpdateOne {
+	return upuo.SetUserID(u.ID)
 }
 
-// AddUser adds the "user" edges to the User entity.
-func (upuo *UsersPermissionUpdateOne) AddUser(u ...*User) *UsersPermissionUpdateOne {
-	ids := make([]uuid.UUID, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return upuo.AddUserIDs(ids...)
-}
-
-// AddPermissionIDs adds the "permission" edge to the Permission entity by IDs.
-func (upuo *UsersPermissionUpdateOne) AddPermissionIDs(ids ...uuid.UUID) *UsersPermissionUpdateOne {
-	upuo.mutation.AddPermissionIDs(ids...)
-	return upuo
-}
-
-// AddPermission adds the "permission" edges to the Permission entity.
-func (upuo *UsersPermissionUpdateOne) AddPermission(p ...*Permission) *UsersPermissionUpdateOne {
-	ids := make([]uuid.UUID, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return upuo.AddPermissionIDs(ids...)
+// SetPermission sets the "permission" edge to the Permission entity.
+func (upuo *UsersPermissionUpdateOne) SetPermission(p *Permission) *UsersPermissionUpdateOne {
+	return upuo.SetPermissionID(p.ID)
 }
 
 // Mutation returns the UsersPermissionMutation object of the builder.
@@ -350,46 +256,16 @@ func (upuo *UsersPermissionUpdateOne) Mutation() *UsersPermissionMutation {
 	return upuo.mutation
 }
 
-// ClearUser clears all "user" edges to the User entity.
+// ClearUser clears the "user" edge to the User entity.
 func (upuo *UsersPermissionUpdateOne) ClearUser() *UsersPermissionUpdateOne {
 	upuo.mutation.ClearUser()
 	return upuo
 }
 
-// RemoveUserIDs removes the "user" edge to User entities by IDs.
-func (upuo *UsersPermissionUpdateOne) RemoveUserIDs(ids ...uuid.UUID) *UsersPermissionUpdateOne {
-	upuo.mutation.RemoveUserIDs(ids...)
-	return upuo
-}
-
-// RemoveUser removes "user" edges to User entities.
-func (upuo *UsersPermissionUpdateOne) RemoveUser(u ...*User) *UsersPermissionUpdateOne {
-	ids := make([]uuid.UUID, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return upuo.RemoveUserIDs(ids...)
-}
-
-// ClearPermission clears all "permission" edges to the Permission entity.
+// ClearPermission clears the "permission" edge to the Permission entity.
 func (upuo *UsersPermissionUpdateOne) ClearPermission() *UsersPermissionUpdateOne {
 	upuo.mutation.ClearPermission()
 	return upuo
-}
-
-// RemovePermissionIDs removes the "permission" edge to Permission entities by IDs.
-func (upuo *UsersPermissionUpdateOne) RemovePermissionIDs(ids ...uuid.UUID) *UsersPermissionUpdateOne {
-	upuo.mutation.RemovePermissionIDs(ids...)
-	return upuo
-}
-
-// RemovePermission removes "permission" edges to Permission entities.
-func (upuo *UsersPermissionUpdateOne) RemovePermission(p ...*Permission) *UsersPermissionUpdateOne {
-	ids := make([]uuid.UUID, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return upuo.RemovePermissionIDs(ids...)
 }
 
 // Where appends a list predicates to the UsersPermissionUpdate builder.
@@ -432,7 +308,21 @@ func (upuo *UsersPermissionUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (upuo *UsersPermissionUpdateOne) check() error {
+	if upuo.mutation.UserCleared() && len(upuo.mutation.UserIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "UsersPermission.user"`)
+	}
+	if upuo.mutation.PermissionCleared() && len(upuo.mutation.PermissionIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "UsersPermission.permission"`)
+	}
+	return nil
+}
+
 func (upuo *UsersPermissionUpdateOne) sqlSave(ctx context.Context) (_node *UsersPermission, err error) {
+	if err := upuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(userspermission.Table, userspermission.Columns, sqlgraph.NewFieldSpec(userspermission.FieldID, field.TypeUUID))
 	id, ok := upuo.mutation.ID()
 	if !ok {
@@ -458,47 +348,25 @@ func (upuo *UsersPermissionUpdateOne) sqlSave(ctx context.Context) (_node *Users
 			}
 		}
 	}
-	if value, ok := upuo.mutation.UserID(); ok {
-		_spec.SetField(userspermission.FieldUserID, field.TypeUUID, value)
-	}
-	if value, ok := upuo.mutation.PermissionID(); ok {
-		_spec.SetField(userspermission.FieldPermissionID, field.TypeUUID, value)
-	}
 	if upuo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
+			Columns: []string{userspermission.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := upuo.mutation.RemovedUserIDs(); len(nodes) > 0 && !upuo.mutation.UserCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := upuo.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
+			Columns: []string{userspermission.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
@@ -511,39 +379,23 @@ func (upuo *UsersPermissionUpdateOne) sqlSave(ctx context.Context) (_node *Users
 	}
 	if upuo.mutation.PermissionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
+			Columns: []string{userspermission.PermissionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := upuo.mutation.RemovedPermissionIDs(); len(nodes) > 0 && !upuo.mutation.PermissionCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := upuo.mutation.PermissionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
+			Columns: []string{userspermission.PermissionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),

@@ -21,11 +21,13 @@ const (
 	EdgePermissions = "permissions"
 	// Table holds the table name of the resource in the database.
 	Table = "resource"
-	// PermissionsTable is the table that holds the permissions relation/edge. The primary key declared below.
-	PermissionsTable = "resource_permissions"
+	// PermissionsTable is the table that holds the permissions relation/edge.
+	PermissionsTable = "permission"
 	// PermissionsInverseTable is the table name for the Permission entity.
 	// It exists in this package in order to avoid circular dependency with the "permission" package.
 	PermissionsInverseTable = "permission"
+	// PermissionsColumn is the table column denoting the permissions relation/edge.
+	PermissionsColumn = "resource_id"
 )
 
 // Columns holds all SQL columns for resource fields.
@@ -34,12 +36,6 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 }
-
-var (
-	// PermissionsPrimaryKey and PermissionsColumn2 are the table columns denoting the
-	// primary key for the permissions relation (M2M).
-	PermissionsPrimaryKey = []string{"resource_id", "permission_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -93,6 +89,6 @@ func newPermissionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PermissionsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, PermissionsTable, PermissionsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, PermissionsTable, PermissionsColumn),
 	)
 }

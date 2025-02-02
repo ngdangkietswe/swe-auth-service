@@ -23,16 +23,20 @@ const (
 	EdgePermission = "permission"
 	// Table holds the table name of the userspermission in the database.
 	Table = "users_permission"
-	// UserTable is the table that holds the user relation/edge. The primary key declared below.
-	UserTable = "user_users_permissions"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "users_permission"
 	// UserInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
-	// PermissionTable is the table that holds the permission relation/edge. The primary key declared below.
-	PermissionTable = "permission_users_permissions"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_id"
+	// PermissionTable is the table that holds the permission relation/edge.
+	PermissionTable = "users_permission"
 	// PermissionInverseTable is the table name for the Permission entity.
 	// It exists in this package in order to avoid circular dependency with the "permission" package.
 	PermissionInverseTable = "permission"
+	// PermissionColumn is the table column denoting the permission relation/edge.
+	PermissionColumn = "permission_id"
 )
 
 // Columns holds all SQL columns for userspermission fields.
@@ -41,15 +45,6 @@ var Columns = []string{
 	FieldUserID,
 	FieldPermissionID,
 }
-
-var (
-	// UserPrimaryKey and UserColumn2 are the table columns denoting the
-	// primary key for the user relation (M2M).
-	UserPrimaryKey = []string{"user_id", "users_permission_id"}
-	// PermissionPrimaryKey and PermissionColumn2 are the table columns denoting the
-	// primary key for the permission relation (M2M).
-	PermissionPrimaryKey = []string{"permission_id", "users_permission_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -84,44 +79,30 @@ func ByPermissionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPermissionID, opts...).ToFunc()
 }
 
-// ByUserCount orders the results by user count.
-func ByUserCount(opts ...sql.OrderTermOption) OrderOption {
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newUserStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByUser orders the results by user terms.
-func ByUser(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByPermissionField orders the results by permission field.
+func ByPermissionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUserStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByPermissionCount orders the results by permission count.
-func ByPermissionCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newPermissionStep(), opts...)
-	}
-}
-
-// ByPermission orders the results by permission terms.
-func ByPermission(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPermissionStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newPermissionStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UserInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, UserTable, UserPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 	)
 }
 func newPermissionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PermissionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, PermissionTable, PermissionPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.M2O, true, PermissionTable, PermissionColumn),
 	)
 }

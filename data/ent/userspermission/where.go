@@ -84,26 +84,6 @@ func UserIDNotIn(vs ...uuid.UUID) predicate.UsersPermission {
 	return predicate.UsersPermission(sql.FieldNotIn(FieldUserID, vs...))
 }
 
-// UserIDGT applies the GT predicate on the "user_id" field.
-func UserIDGT(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldGT(FieldUserID, v))
-}
-
-// UserIDGTE applies the GTE predicate on the "user_id" field.
-func UserIDGTE(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldGTE(FieldUserID, v))
-}
-
-// UserIDLT applies the LT predicate on the "user_id" field.
-func UserIDLT(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldLT(FieldUserID, v))
-}
-
-// UserIDLTE applies the LTE predicate on the "user_id" field.
-func UserIDLTE(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldLTE(FieldUserID, v))
-}
-
 // PermissionIDEQ applies the EQ predicate on the "permission_id" field.
 func PermissionIDEQ(v uuid.UUID) predicate.UsersPermission {
 	return predicate.UsersPermission(sql.FieldEQ(FieldPermissionID, v))
@@ -124,32 +104,12 @@ func PermissionIDNotIn(vs ...uuid.UUID) predicate.UsersPermission {
 	return predicate.UsersPermission(sql.FieldNotIn(FieldPermissionID, vs...))
 }
 
-// PermissionIDGT applies the GT predicate on the "permission_id" field.
-func PermissionIDGT(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldGT(FieldPermissionID, v))
-}
-
-// PermissionIDGTE applies the GTE predicate on the "permission_id" field.
-func PermissionIDGTE(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldGTE(FieldPermissionID, v))
-}
-
-// PermissionIDLT applies the LT predicate on the "permission_id" field.
-func PermissionIDLT(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldLT(FieldPermissionID, v))
-}
-
-// PermissionIDLTE applies the LTE predicate on the "permission_id" field.
-func PermissionIDLTE(v uuid.UUID) predicate.UsersPermission {
-	return predicate.UsersPermission(sql.FieldLTE(FieldPermissionID, v))
-}
-
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.UsersPermission {
 	return predicate.UsersPermission(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, UserTable, UserPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -172,7 +132,7 @@ func HasPermission() predicate.UsersPermission {
 	return predicate.UsersPermission(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, PermissionTable, PermissionPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, PermissionTable, PermissionColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

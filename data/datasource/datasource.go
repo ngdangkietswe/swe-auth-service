@@ -14,13 +14,15 @@ func NewEntClient() *ent.Client {
 	client, err := ent.Open(
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s dbname=%s password=%s sslmode=%s",
+			"host=%s port=%d user=%s dbname=%s password=%s sslmode=%s search_path=%s",
 			config.GetString("DB_HOST", "localhost"),
 			config.GetInt("DB_PORT", 5432),
 			config.GetString("DB_USER", "postgres"),
 			config.GetString("DB_NAME", "SweAuth"),
 			config.GetString("DB_PASSWORD", "123456"),
-			config.GetString("DB_SSL_MODE", "disable")),
+			config.GetString("DB_SSL_MODE", "disable"),
+			config.GetString("DB_SEARCH_PATH", "sweauth"),
+		),
 	)
 	if err != nil {
 		log.Fatalf("failed opening connection to postgres: %v", err)

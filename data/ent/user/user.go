@@ -33,11 +33,13 @@ const (
 	EdgeUsersPermissions = "users_permissions"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// UsersPermissionsTable is the table that holds the users_permissions relation/edge. The primary key declared below.
-	UsersPermissionsTable = "user_users_permissions"
+	// UsersPermissionsTable is the table that holds the users_permissions relation/edge.
+	UsersPermissionsTable = "users_permission"
 	// UsersPermissionsInverseTable is the table name for the UsersPermission entity.
 	// It exists in this package in order to avoid circular dependency with the "userspermission" package.
 	UsersPermissionsInverseTable = "users_permission"
+	// UsersPermissionsColumn is the table column denoting the users_permissions relation/edge.
+	UsersPermissionsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -51,12 +53,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
-
-var (
-	// UsersPermissionsPrimaryKey and UsersPermissionsColumn2 are the table columns denoting the
-	// primary key for the users_permissions relation (M2M).
-	UsersPermissionsPrimaryKey = []string{"user_id", "users_permission_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -145,6 +141,6 @@ func newUsersPermissionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsersPermissionsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, UsersPermissionsTable, UsersPermissionsColumn),
 	)
 }

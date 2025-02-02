@@ -48,34 +48,14 @@ func (upc *UsersPermissionCreate) SetNillableID(u *uuid.UUID) *UsersPermissionCr
 	return upc
 }
 
-// AddUserIDs adds the "user" edge to the User entity by IDs.
-func (upc *UsersPermissionCreate) AddUserIDs(ids ...uuid.UUID) *UsersPermissionCreate {
-	upc.mutation.AddUserIDs(ids...)
-	return upc
+// SetUser sets the "user" edge to the User entity.
+func (upc *UsersPermissionCreate) SetUser(u *User) *UsersPermissionCreate {
+	return upc.SetUserID(u.ID)
 }
 
-// AddUser adds the "user" edges to the User entity.
-func (upc *UsersPermissionCreate) AddUser(u ...*User) *UsersPermissionCreate {
-	ids := make([]uuid.UUID, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return upc.AddUserIDs(ids...)
-}
-
-// AddPermissionIDs adds the "permission" edge to the Permission entity by IDs.
-func (upc *UsersPermissionCreate) AddPermissionIDs(ids ...uuid.UUID) *UsersPermissionCreate {
-	upc.mutation.AddPermissionIDs(ids...)
-	return upc
-}
-
-// AddPermission adds the "permission" edges to the Permission entity.
-func (upc *UsersPermissionCreate) AddPermission(p ...*Permission) *UsersPermissionCreate {
-	ids := make([]uuid.UUID, len(p))
-	for i := range p {
-		ids[i] = p[i].ID
-	}
-	return upc.AddPermissionIDs(ids...)
+// SetPermission sets the "permission" edge to the Permission entity.
+func (upc *UsersPermissionCreate) SetPermission(p *Permission) *UsersPermissionCreate {
+	return upc.SetPermissionID(p.ID)
 }
 
 // Mutation returns the UsersPermissionMutation object of the builder.
@@ -127,6 +107,12 @@ func (upc *UsersPermissionCreate) check() error {
 	if _, ok := upc.mutation.PermissionID(); !ok {
 		return &ValidationError{Name: "permission_id", err: errors.New(`ent: missing required field "UsersPermission.permission_id"`)}
 	}
+	if len(upc.mutation.UserIDs()) == 0 {
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "UsersPermission.user"`)}
+	}
+	if len(upc.mutation.PermissionIDs()) == 0 {
+		return &ValidationError{Name: "permission", err: errors.New(`ent: missing required edge "UsersPermission.permission"`)}
+	}
 	return nil
 }
 
@@ -162,20 +148,12 @@ func (upc *UsersPermissionCreate) createSpec() (*UsersPermission, *sqlgraph.Crea
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := upc.mutation.UserID(); ok {
-		_spec.SetField(userspermission.FieldUserID, field.TypeUUID, value)
-		_node.UserID = value
-	}
-	if value, ok := upc.mutation.PermissionID(); ok {
-		_spec.SetField(userspermission.FieldPermissionID, field.TypeUUID, value)
-		_node.PermissionID = value
-	}
 	if nodes := upc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.UserTable,
-			Columns: userspermission.UserPrimaryKey,
+			Columns: []string{userspermission.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
@@ -184,14 +162,15 @@ func (upc *UsersPermissionCreate) createSpec() (*UsersPermission, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.UserID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := upc.mutation.PermissionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   userspermission.PermissionTable,
-			Columns: userspermission.PermissionPrimaryKey,
+			Columns: []string{userspermission.PermissionColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -200,6 +179,7 @@ func (upc *UsersPermissionCreate) createSpec() (*UsersPermission, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.PermissionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

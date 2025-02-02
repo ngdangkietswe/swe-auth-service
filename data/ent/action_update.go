@@ -164,10 +164,10 @@ func (au *ActionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if au.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -177,10 +177,10 @@ func (au *ActionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := au.mutation.RemovedPermissionsIDs(); len(nodes) > 0 && !au.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -193,10 +193,10 @@ func (au *ActionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := au.mutation.PermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -392,10 +392,10 @@ func (auo *ActionUpdateOne) sqlSave(ctx context.Context) (_node *Action, err err
 	}
 	if auo.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -405,10 +405,10 @@ func (auo *ActionUpdateOne) sqlSave(ctx context.Context) (_node *Action, err err
 	}
 	if nodes := auo.mutation.RemovedPermissionsIDs(); len(nodes) > 0 && !auo.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),
@@ -421,10 +421,10 @@ func (auo *ActionUpdateOne) sqlSave(ctx context.Context) (_node *Action, err err
 	}
 	if nodes := auo.mutation.PermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),

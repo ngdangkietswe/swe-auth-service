@@ -166,10 +166,10 @@ func (ac *ActionCreate) createSpec() (*Action, *sqlgraph.CreateSpec) {
 	}
 	if nodes := ac.mutation.PermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   action.PermissionsTable,
-			Columns: action.PermissionsPrimaryKey,
+			Columns: []string{action.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(permission.FieldID, field.TypeUUID),

@@ -4,9 +4,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-go-common-shared/util"
 )
 
 // UsersPermission holds the schema definition for the UsersPermission entity.
@@ -26,10 +26,8 @@ func (UsersPermission) Fields() []ent.Field {
 // Edges of the UsersPermission.
 func (UsersPermission) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).
-			Ref("users_permissions"),
-		edge.From("permission", Permission.Type).
-			Ref("users_permissions"),
+		util.One2ManyInverseRequired("user", User.Type, "users_permissions", "user_id"),
+		util.One2ManyInverseRequired("permission", Permission.Type, "users_permissions", "permission_id"),
 	}
 }
 

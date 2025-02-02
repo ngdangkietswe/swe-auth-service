@@ -27,21 +27,27 @@ const (
 	EdgeUsersPermissions = "users_permissions"
 	// Table holds the table name of the permission in the database.
 	Table = "permission"
-	// ActionTable is the table that holds the action relation/edge. The primary key declared below.
-	ActionTable = "action_permissions"
+	// ActionTable is the table that holds the action relation/edge.
+	ActionTable = "permission"
 	// ActionInverseTable is the table name for the Action entity.
 	// It exists in this package in order to avoid circular dependency with the "action" package.
 	ActionInverseTable = "action"
-	// ResourceTable is the table that holds the resource relation/edge. The primary key declared below.
-	ResourceTable = "resource_permissions"
+	// ActionColumn is the table column denoting the action relation/edge.
+	ActionColumn = "action_id"
+	// ResourceTable is the table that holds the resource relation/edge.
+	ResourceTable = "permission"
 	// ResourceInverseTable is the table name for the Resource entity.
 	// It exists in this package in order to avoid circular dependency with the "resource" package.
 	ResourceInverseTable = "resource"
-	// UsersPermissionsTable is the table that holds the users_permissions relation/edge. The primary key declared below.
-	UsersPermissionsTable = "permission_users_permissions"
+	// ResourceColumn is the table column denoting the resource relation/edge.
+	ResourceColumn = "resource_id"
+	// UsersPermissionsTable is the table that holds the users_permissions relation/edge.
+	UsersPermissionsTable = "users_permission"
 	// UsersPermissionsInverseTable is the table name for the UsersPermission entity.
 	// It exists in this package in order to avoid circular dependency with the "userspermission" package.
 	UsersPermissionsInverseTable = "users_permission"
+	// UsersPermissionsColumn is the table column denoting the users_permissions relation/edge.
+	UsersPermissionsColumn = "permission_id"
 )
 
 // Columns holds all SQL columns for permission fields.
@@ -51,18 +57,6 @@ var Columns = []string{
 	FieldResourceID,
 	FieldDescription,
 }
-
-var (
-	// ActionPrimaryKey and ActionColumn2 are the table columns denoting the
-	// primary key for the action relation (M2M).
-	ActionPrimaryKey = []string{"action_id", "permission_id"}
-	// ResourcePrimaryKey and ResourceColumn2 are the table columns denoting the
-	// primary key for the resource relation (M2M).
-	ResourcePrimaryKey = []string{"resource_id", "permission_id"}
-	// UsersPermissionsPrimaryKey and UsersPermissionsColumn2 are the table columns denoting the
-	// primary key for the users_permissions relation (M2M).
-	UsersPermissionsPrimaryKey = []string{"permission_id", "users_permission_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -102,31 +96,17 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
-// ByActionCount orders the results by action count.
-func ByActionCount(opts ...sql.OrderTermOption) OrderOption {
+// ByActionField orders the results by action field.
+func ByActionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newActionStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newActionStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByAction orders the results by action terms.
-func ByAction(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByResourceField orders the results by resource field.
+func ByResourceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newActionStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByResourceCount orders the results by resource count.
-func ByResourceCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newResourceStep(), opts...)
-	}
-}
-
-// ByResource orders the results by resource terms.
-func ByResource(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newResourceStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newResourceStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -147,20 +127,20 @@ func newActionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ActionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, ActionTable, ActionPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.M2O, true, ActionTable, ActionColumn),
 	)
 }
 func newResourceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ResourceInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, true, ResourceTable, ResourcePrimaryKey...),
+		sqlgraph.Edge(sqlgraph.M2O, true, ResourceTable, ResourceColumn),
 	)
 }
 func newUsersPermissionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsersPermissionsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, UsersPermissionsTable, UsersPermissionsColumn),
 	)
 }

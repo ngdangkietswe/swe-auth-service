@@ -456,7 +456,7 @@ func HasUsersPermissions() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, UsersPermissionsTable, UsersPermissionsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, UsersPermissionsTable, UsersPermissionsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

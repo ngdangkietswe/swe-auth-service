@@ -9,6 +9,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/permission"
+	"github.com/ngdangkietswe/swe-auth-service/data/ent/user"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent/userspermission"
 )
 
@@ -30,28 +32,32 @@ type UsersPermission struct {
 // UsersPermissionEdges holds the relations/edges for other nodes in the graph.
 type UsersPermissionEdges struct {
 	// User holds the value of the user edge.
-	User []*User `json:"user,omitempty"`
+	User *User `json:"user,omitempty"`
 	// Permission holds the value of the permission edge.
-	Permission []*Permission `json:"permission,omitempty"`
+	Permission *Permission `json:"permission,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
-// was not loaded in eager-loading.
-func (e UsersPermissionEdges) UserOrErr() ([]*User, error) {
-	if e.loadedTypes[0] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UsersPermissionEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
 
 // PermissionOrErr returns the Permission value or an error if the edge
-// was not loaded in eager-loading.
-func (e UsersPermissionEdges) PermissionOrErr() ([]*Permission, error) {
-	if e.loadedTypes[1] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UsersPermissionEdges) PermissionOrErr() (*Permission, error) {
+	if e.Permission != nil {
 		return e.Permission, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: permission.Label}
 	}
 	return nil, &NotLoadedError{edge: "permission"}
 }
