@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	actionrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/action"
 	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
 	permissionrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/permission"
@@ -17,14 +18,20 @@ import (
 	"github.com/ngdangkietswe/swe-go-common-shared/cache"
 	"github.com/ngdangkietswe/swe-go-common-shared/constants"
 	grpcutil "github.com/ngdangkietswe/swe-go-common-shared/grpc/util"
+	"github.com/ngdangkietswe/swe-go-common-shared/logger"
 	commonutil "github.com/ngdangkietswe/swe-go-common-shared/util"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/auth"
 	"github.com/ngdangkietswe/swe-protobuf-shared/generated/common"
 	"github.com/samber/lo"
+	"go.uber.org/zap"
 	"log"
 )
 
 type permissionSvc struct {
+	client     *ent.Client
+	logger     *logger.Logger
+	redisCache *cache.RedisCache
+
 	actionRepo          actionrepo.IActionRepository
 	resourceRepo        resourcerepo.IResourceRepository
 	permissionRepo      permissionrepo.IPermissionRepository
@@ -32,8 +39,6 @@ type permissionSvc struct {
 	authRepo            authrepo.IAuthRepository
 
 	permissionValidator validator.IPermissionValidator
-
-	redisCache *cache.RedisCache
 }
 
 // PermissionOfUser is a function that gets permissions of a user.
@@ -61,7 +66,7 @@ func (p permissionSvc) PermissionOfUser(ctx context.Context, req *common.IdReq) 
 		return userPermission.PermissionID
 	})
 
-	permissions, err := p.permissionRepo.FindAllByIds(ctx, lo.Uniq(permissionIds))
+	permissions, err := p.permissionRepo.FindAllByIdIn(ctx, lo.Uniq(permissionIds))
 	if err != nil {
 		log.Printf("error finding permissions by ids: %v", err)
 		return nil, err
@@ -106,10 +111,11 @@ func (p permissionSvc) UpsertPermission(ctx context.Context, req *auth.UpsertPer
 		}
 	}
 
-	permission, err := p.permissionRepo.UpsertPermission(ctx, req)
+	permission, err := repository.WithTxResult(ctx, p.client, p.logger, func(tx *ent.Tx) (*ent.Permission, error) {
+		return p.permissionRepo.Save(ctx, tx, req)
+	})
 	if err != nil {
-		log.Printf("error upserting permission: %v", err)
-		return nil, err
+		p.logger.Error("error upserting permission", zap.Error(err))
 	}
 
 	return &common.UpsertResp{
@@ -131,7 +137,7 @@ func (p permissionSvc) ListPermissions(ctx context.Context, req *auth.ListPermis
 	}
 
 	normalizePageable := utils.NormalizePageable(req.Pageable)
-	permissions, count, err := p.permissionRepo.ListPermissions(ctx, req, normalizePageable)
+	permissions, count, err := p.permissionRepo.FindAll(ctx, req, normalizePageable)
 	if err != nil {
 		log.Printf("error listing permissions: %v", err)
 		return nil, err
@@ -220,19 +226,24 @@ func (p permissionSvc) AssignPermissions(ctx context.Context, req *auth.AssignPe
 }
 
 func NewPermissionGrpcService(
+	client *ent.Client,
+	logger *logger.Logger,
+	redisCache *cache.RedisCache,
 	actionRepo actionrepo.IActionRepository,
 	resourceRepo resourcerepo.IResourceRepository,
 	permissionRepo permissionrepo.IPermissionRepository,
 	userPermissionsRepo userpermissionsrepo.IUserPermissionsRepository,
 	authRepo authrepo.IAuthRepository,
 	permissionValidator validator.IPermissionValidator,
-	redisCache *cache.RedisCache) IPermissionService {
+) IPermissionService {
 	return &permissionSvc{
+		client:         client,
+		logger:         logger,
+		redisCache:     redisCache,
 		permissionRepo: permissionRepo,
 		actionRepo:     actionRepo,
 		resourceRepo:   resourceRepo,
 		authRepo:       authRepo, userPermissionsRepo: userPermissionsRepo,
 		permissionValidator: permissionValidator,
-		redisCache:          redisCache,
 	}
 }

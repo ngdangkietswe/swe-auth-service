@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ngdangkietswe/swe-auth-service/data/ent"
+	"github.com/ngdangkietswe/swe-auth-service/data/repository"
 	authrepo "github.com/ngdangkietswe/swe-auth-service/data/repository/auth"
 	"github.com/ngdangkietswe/swe-auth-service/grpc/mapper"
 	validator "github.com/ngdangkietswe/swe-auth-service/grpc/validator/auth"
@@ -25,6 +26,7 @@ import (
 )
 
 type authService struct {
+	client         *ent.Client
 	logger         *logger.Logger
 	redisCache     *cache.RedisCache
 	kafkaProducer  *producer.KProducer
@@ -83,23 +85,29 @@ func (a authService) ResetPassword(ctx context.Context, req *auth.ResetPasswordR
 	cacheKey := fmt.Sprintf("%s_%s", constants.ResetPasswordCacheKeyPrefix, req.Token)
 	err = a.redisCache.Get(cacheKey, &resetPassword)
 	if err != nil {
+		a.logger.Error("Failed to get reset password token from cache", zap.Error(err), zap.String("token", req.Token))
 		return nil, err
 	}
 
 	entUser, err := a.authRepository.FindByEmail(ctx, resetPassword.Email)
 	if err != nil {
+		a.logger.Error("User not found", zap.String("email", resetPassword.Email))
 		return nil, err
 	}
 
 	// Update password
-	entUser, err = a.authRepository.ChangePassword(ctx, entUser.ID.String(), req.NewPassword)
+	_, err = repository.WithTxResult(ctx, a.client, a.logger, func(tx *ent.Tx) (*ent.User, error) {
+		return a.authRepository.ChangePassword(ctx, tx, entUser.ID.String(), req.NewPassword)
+	})
 	if err != nil {
-		return nil, err
+		a.logger.Error("Failed to change password", zap.Error(err), zap.String("userId", entUser.ID.String()))
+		return nil, fmt.Errorf("failed to change password: %w", err)
 	}
 
 	// Delete token in redis
 	err = a.redisCache.Delete(cacheKey)
 	if err != nil {
+		a.logger.Error("Failed to delete reset password token from cache", zap.Error(err), zap.String("token", req.Token))
 		return nil, err
 	}
 
@@ -120,13 +128,17 @@ func (a authService) ChangePassword(ctx context.Context, req *auth.ChangePasswor
 	// Validate request and check if old password is correct
 	err = a.authValidator.ChangePassword(req, entUser.Password)
 	if err != nil {
+		a.logger.Error("Invalid change password request", zap.Error(err), zap.String("userId", entUser.ID.String()))
 		return nil, err
 	}
 
 	// Save new password
-	_, err = a.authRepository.ChangePassword(ctx, principal.UserId, req.NewPassword)
+	_, err = repository.WithTxResult(ctx, a.client, a.logger, func(tx *ent.Tx) (*ent.User, error) {
+		return a.authRepository.ChangePassword(ctx, tx, entUser.ID.String(), req.NewPassword)
+	})
 	if err != nil {
-		return nil, err
+		a.logger.Error("Failed to change password", zap.Error(err), zap.String("userId", entUser.ID.String()))
+		return nil, fmt.Errorf("failed to change password: %w", err)
 	}
 
 	return &common.EmptyResp{
@@ -138,10 +150,13 @@ func (a authService) ChangePassword(ctx context.Context, req *auth.ChangePasswor
 func (a authService) EnableOrDisable2FA(ctx context.Context, req *auth.EnableOrDisable2FAReq) (*auth.EnableOrDisable2FAResp, error) {
 	principal := grpcutil.GetGrpcPrincipal(ctx)
 	userId := principal.UserId
-	entUser, err := a.authRepository.EnableOrDisable2FA(ctx, userId, req.Enable)
+
+	entUser, err := repository.WithTxResult(ctx, a.client, a.logger, func(tx *ent.Tx) (*ent.User, error) {
+		return a.authRepository.EnableOrDisable2FA(ctx, tx, userId, req.Enable)
+	})
 	if err != nil {
-		a.logger.Error("User not found", zap.String("userId", userId))
-		return nil, errors.New("user not found")
+		a.logger.Error("Failed to enable or disable 2FA", zap.Error(err), zap.String("userId", userId))
+		return nil, fmt.Errorf("failed to enable or disable 2FA: %w", err)
 	}
 
 	resp := &auth.EnableOrDisable2FAResp{
@@ -169,9 +184,12 @@ func (a authService) RegisterUser(ctx context.Context, req *auth.User) (*common.
 	}
 
 	req.Password = hashPassword
-	entUser, err := a.authRepository.UpsertUser(ctx, req)
+	entUser, err := repository.WithTxResult(ctx, a.client, a.logger, func(tx *ent.Tx) (*ent.User, error) {
+		return a.authRepository.UpsertUser(ctx, tx, req)
+	})
 	if err != nil {
-		return nil, err
+		a.logger.Error("Failed to upsert user", zap.Error(err), zap.String("username", req.Username), zap.String("email", req.Email))
+		return nil, fmt.Errorf("failed to upsert user: %w", err)
 	}
 
 	// Produce message to kafka. This message will be consumed by swe notification service
@@ -255,12 +273,14 @@ func (a authService) Login(ctx context.Context, req *auth.LoginReq) (*auth.Login
 }
 
 func NewAuthGrpcService(
+	client *ent.Client,
 	logger *logger.Logger,
 	redisCache *cache.RedisCache,
 	kafkaProducer *producer.KProducer,
 	authRepository authrepo.IAuthRepository,
 	authValidator validator.IAuthValidator) IAuthService {
 	return &authService{
+		client:         client,
 		logger:         logger,
 		redisCache:     redisCache,
 		kafkaProducer:  kafkaProducer,

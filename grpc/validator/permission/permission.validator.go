@@ -113,7 +113,7 @@ func (p permissionValidator) ValidateAssignPermissions(ctx context.Context, req 
 		return errors.New("invalid permission ids")
 	}
 
-	exists, err = p.permissionRepo.ExistsAllByIds(ctx, req.PermissionIds)
+	exists, err = p.permissionRepo.ExistsByIdIn(ctx, req.PermissionIds)
 	if err != nil {
 		return err
 	} else if !exists {

@@ -15,8 +15,8 @@ type permissionRepository struct {
 	entClient *ent.Client
 }
 
-// FindAllByIds is a function that finds all permissions by IDs.
-func (p permissionRepository) FindAllByIds(ctx context.Context, ids []uuid.UUID) ([]*ent.Permission, error) {
+// FindAllByIdIn is a function that finds all permissions by IDs.
+func (p permissionRepository) FindAllByIdIn(ctx context.Context, ids []uuid.UUID) ([]*ent.Permission, error) {
 	return p.entClient.Permission.Query().Where(permission.IDIn(ids...)).All(ctx)
 }
 
@@ -26,7 +26,7 @@ func (p permissionRepository) ExistsById(ctx context.Context, id string) (bool, 
 	return exists, err
 }
 
-func (p permissionRepository) ExistsAllByIds(ctx context.Context, ids []string) (bool, error) {
+func (p permissionRepository) ExistsByIdIn(ctx context.Context, ids []string) (bool, error) {
 	uIds := commonutils.Convert2UUID(ids)
 	count, err := p.entClient.Permission.Query().Where(permission.IDIn(uIds...)).Count(ctx)
 	return count == len(ids), err
@@ -41,30 +41,33 @@ func (p permissionRepository) ExistsByActionAndResource(ctx context.Context, act
 	return exists, err
 }
 
-// UpsertPermission is a function that upserts a permission.
+// Save is a function that upserts a permission.
 // If the permission has an ID, it will update the permission.
 // Otherwise, it will create a new permission
-func (p permissionRepository) UpsertPermission(ctx context.Context, permission *auth.UpsertPermissionReq) (*ent.Permission, error) {
+func (p permissionRepository) Save(ctx context.Context, tx *ent.Tx, permission *auth.UpsertPermissionReq) (*ent.Permission, error) {
 	if permission.Id != nil {
-		return p.entClient.Permission.UpdateOneID(uuid.MustParse(*permission.Id)).
+		return tx.Permission.UpdateOneID(uuid.MustParse(*permission.Id)).
 			SetActionID(uuid.MustParse(permission.ActionId)).
 			SetResourceID(uuid.MustParse(permission.ResourceId)).
 			Save(ctx)
 	} else {
-		return p.entClient.Permission.Create().
+		return tx.Permission.Create().
 			SetActionID(uuid.MustParse(permission.ActionId)).
 			SetResourceID(uuid.MustParse(permission.ResourceId)).
 			Save(ctx)
 	}
 }
 
-func (p permissionRepository) FindPermissionById(ctx context.Context, id string) (*ent.Permission, error) {
-	//TODO implement me
-	panic("implement me")
+func (p permissionRepository) FindById(ctx context.Context, id string) (*ent.Permission, error) {
+	return p.entClient.Permission.Query().
+		Where(permission.ID(uuid.MustParse(id))).
+		WithResource().
+		WithAction().
+		Only(ctx)
 }
 
-// ListPermissions is a function that lists permissions.
-func (p permissionRepository) ListPermissions(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, int64, error) {
+// FindAll is a function that lists permissions.
+func (p permissionRepository) FindAll(ctx context.Context, req *auth.ListPermissionsReq, pageable *common.Pageable) ([]*ent.Permission, int64, error) {
 	entPs := p.entClient.Permission.Query()
 
 	if req.ActionId != nil {
@@ -82,7 +85,7 @@ func (p permissionRepository) ListPermissions(ctx context.Context, req *auth.Lis
 	return data, int64(count), err
 }
 
-func (p permissionRepository) AssignPermissions(ctx context.Context, req *auth.AssignPermissionsReq) error {
+func (p permissionRepository) AssignPermissions(ctx context.Context, tx *ent.Tx, req *auth.AssignPermissionsReq) error {
 	//TODO implement me
 	panic("implement me")
 }

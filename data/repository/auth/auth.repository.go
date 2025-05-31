@@ -24,12 +24,12 @@ func (a authRepository) ExistsByEmail(ctx context.Context, email string) (bool, 
 }
 
 // ChangePassword is a function that changes the password of a user
-func (a authRepository) ChangePassword(ctx context.Context, id, newPassword string) (*ent.User, error) {
+func (a authRepository) ChangePassword(ctx context.Context, tx *ent.Tx, id, newPassword string) (*ent.User, error) {
 	hashNewPassword, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return nil, err
 	}
-	return a.entClient.User.UpdateOneID(uuid.MustParse(id)).
+	return tx.User.UpdateOneID(uuid.MustParse(id)).
 		SetPassword(hashNewPassword).
 		Save(ctx)
 }
@@ -46,8 +46,8 @@ func (a authRepository) ExistsById(ctx context.Context, id string) (bool, error)
 }
 
 // EnableOrDisable2FA is a function that enables or disables 2FA for a user
-func (a authRepository) EnableOrDisable2FA(ctx context.Context, userId string, enable bool) (*ent.User, error) {
-	query := a.entClient.User.UpdateOneID(uuid.MustParse(userId)).SetEnable2fa(enable)
+func (a authRepository) EnableOrDisable2FA(ctx context.Context, tx *ent.Tx, userId string, enable bool) (*ent.User, error) {
+	query := tx.User.UpdateOneID(uuid.MustParse(userId)).SetEnable2fa(enable)
 
 	if enable {
 		query.SetSecret2fa(utils.GenerateSecret())
@@ -73,18 +73,18 @@ func (a authRepository) FindByUsername(ctx context.Context, username string) (*e
 }
 
 // UpsertUser is a function that upserts a user. If the user has an ID, it will update the user. Otherwise, it will create a new user
-func (a authRepository) UpsertUser(ctx context.Context, user *auth.User) (*ent.User, error) {
+func (a authRepository) UpsertUser(ctx context.Context, tx *ent.Tx, user *auth.User) (*ent.User, error) {
 	var entUser *ent.User
 	var err error
 
 	if user.Id != nil {
-		entUser, err = a.entClient.User.UpdateOneID(uuid.MustParse(*user.Id)).
+		entUser, err = tx.User.UpdateOneID(uuid.MustParse(*user.Id)).
 			SetUsername(user.Username).
 			SetEmail(user.Email).
 			SetPassword(user.Password).
 			Save(ctx)
 	} else {
-		entUser, err = a.entClient.User.Create().
+		entUser, err = tx.User.Create().
 			SetUsername(user.Username).
 			SetEmail(user.Email).
 			SetPassword(user.Password).
